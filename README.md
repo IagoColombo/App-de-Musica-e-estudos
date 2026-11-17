@@ -47,7 +47,7 @@ No painel Estudo / Trabalho, escolha **Windows** e inicie uma sessão. O LyraFlo
 - Player local com arquivo de áudio escolhido pelo usuário para cada faixa, controles de reprodução aleatória e repetição. Sem arquivo associado, a reprodução e a busca na linha do tempo ficam desativadas. As letras locais são exemplos e só sincronizam com o áudio se o arquivo corresponder à faixa e aos tempos cadastrados.
 - `LyricsProxy` consulta `LyricsService`, mantém cache em memória e mostra hits e misses no painel. Quando o Spotify está em foco, o painel mostra a consulta real ao LRCLIB e a tradução via MyMemory.
 - Favoritos, histórico, faixa escolhida para foco e lista de sites persistem no navegador local.
-- Modo Estudo / Trabalho com faixa escolhida, temporizador e lista de sites. O modo Windows bloqueia os domínios escolhidos via `hosts`; a extensão bloqueia no Chrome/Edge. Aplicativos não são bloqueados.
+- Modo Estudo / Trabalho com playlist local configurável, temporizador e lista de sites. A próxima faixa toca automaticamente quando há áudio associado; a sessão pausa se faltar o arquivo. O modo Windows bloqueia os domínios escolhidos via `hosts`; a extensão bloqueia no Chrome/Edge. Aplicativos não são bloqueados.
 - Links de faixas Spotify e vídeos YouTube são identificados e exibidos em players incorporados. A leitura automática da faixa Spotify usa a API oficial após autorização. YouTube não é monitorado fora do app; importação de playlists e letras reais ainda não estão conectadas.
 
 O planejamento completo está no `PROJECT.md`, se copiado para este diretório.

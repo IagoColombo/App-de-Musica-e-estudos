@@ -98,6 +98,10 @@
 .focus-options button { border: 1px solid var(--color-border); border-radius: 8px; padding: 6px 9px; background: var(--color-surface); color: var(--color-text); font-size: 12px; }
 .focus-card .focus-blocking { border: 0; border-top: 1px solid var(--color-border); border-radius: 0; background: none; padding: 14px 0 0; margin-top: 13px; }
 .focus-card .focus-blocking label, .focus-card .focus-blocking p, .focus-card .focus-blocking small { font-size: 12px; }
+.modal { max-height: min(85vh, 760px); overflow-y: auto; }
+.modal h3 { font: 500 17px var(--font-display); margin: 20px 0 8px; }
+.focus-current { display: grid; gap: 7px; color: var(--color-muted); font-size: 12px; margin-top: 16px; }
+.focus-current select { padding: 9px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-surface-raised); color: var(--color-text); }
 
 @media (min-width: 1221px) { .workspace { grid-template-columns: minmax(250px, 1fr) minmax(360px, 1.4fr) minmax(280px, .95fr); gap: 20px; } .right-column { grid-column: auto; grid-template-columns: 1fr; } }
 @media (max-width: 1220px) { .right-column { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
