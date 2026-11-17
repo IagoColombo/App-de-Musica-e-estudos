@@ -1,0 +1,40 @@
+:root {
+  color-scheme: dark;
+  --color-bg: #0a1519;
+  --color-surface: #0f1f25;
+  --color-surface-raised: #12262d;
+  --color-teal: #19464b;
+  --color-gold: #d9a15b;
+  --color-success: #3ecf8e;
+  --color-warning: #e0a24a;
+  --color-danger: #e5584f;
+  --color-text: #eef2f1;
+  --color-muted: #9fb3b6;
+  --color-border: rgb(162 190 192 / 19%);
+  --color-focus: #f2ba72;
+  --font-body: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-display: 'IBM Plex Serif', Georgia, serif;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-card: 18px;
+  --shadow-card: 0 18px 40px rgb(0 0 0 / 24%);
+  font-family: var(--font-body);
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+body { min-width: 980px; }
+button, input, select { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+@media (max-width: 980px) { body { min-width: 0; } }

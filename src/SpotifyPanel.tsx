@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { connectSpotify, getSpotifyTrack, type SpotifySession, type SpotifyTrack } from './spotify';
 
-export function SpotifyPanel() {
+export function SpotifyPanel({ onConnectionChange }: { onConnectionChange?: (connected: boolean) => void }) {
   const [clientId, setClientId] = useState(() => localStorage.getItem('lyra:spotifyClientId') || '');
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -21,6 +21,7 @@ export function SpotifyPanel() {
       if (session.current === previous) {
         session.current = result.session;
         setTrack(result.track);
+        window.dispatchEvent(new CustomEvent('lyra:spotify-track', { detail: result.track }));
         setError('');
       }
     } catch (cause) {
@@ -30,7 +31,7 @@ export function SpotifyPanel() {
 
   useEffect(() => {
     if (!connected) return;
-    const timer = window.setInterval(refresh, 15_000);
+    const timer = window.setInterval(refresh, 5_000);
     return () => window.clearInterval(timer);
   }, [connected]);
 
@@ -40,6 +41,7 @@ export function SpotifyPanel() {
     try {
       session.current = await connectSpotify(clientId.trim());
       setConnected(true);
+      onConnectionChange?.(true);
       await refresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setBusy(false); }
@@ -48,7 +50,9 @@ export function SpotifyPanel() {
   function disconnect() {
     session.current = null;
     setConnected(false);
+    onConnectionChange?.(false);
     setTrack(null);
+    window.dispatchEvent(new CustomEvent('lyra:spotify-track', { detail: null }));
     setError('');
   }
 
@@ -59,6 +63,6 @@ export function SpotifyPanel() {
       <div className="spotify-actions"><button onClick={refresh}>Atualizar</button><button onClick={disconnect}>Desconectar</button></div>
     </>}
     {error && <small className="spotify-error" role="alert">{error}</small>}
-    <small className="spotify-footnote">A letra exibida ao lado continua sendo a prévia local.</small>
+    <small className="spotify-footnote">Letra consultada para a faixa atual, quando disponível.</small>
   </div>;
 }

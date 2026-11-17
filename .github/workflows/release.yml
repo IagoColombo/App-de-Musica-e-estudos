@@ -1,0 +1,30 @@
+name: Publicar LyraFlow para Windows
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run desktop:build
+      - name: Publicar executável e instalador
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $exe = 'src-tauri/target/release/lyraflow.exe'
+          $installer = Get-ChildItem 'src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' | Select-Object -First 1 -ExpandProperty FullName
+          if (-not (Test-Path $exe) -or -not $installer) { throw 'Build Windows incompleto.' }
+          gh release create "build-${{ github.sha }}" $exe $installer --title "LyraFlow ${{ github.sha }}" --notes "Build automático do commit ${{ github.sha }}." --prerelease --target "${{ github.sha }}"
