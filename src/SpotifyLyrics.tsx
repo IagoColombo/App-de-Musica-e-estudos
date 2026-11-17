@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SpotifyTrack } from './spotify';
+import { Languages, Music2 } from 'lucide-react';
 
 type LyricLine = { at: number | null; original: string; translation?: string };
 type LyricsView = 'both' | 'original' | 'translation';
 type LrcLibResult = { syncedLyrics?: string | null; plainLyrics?: string | null };
+export type SpotifyLookup = { kind: 'miss' | 'error'; durationMs: number; at: string };
 
 const translationCache = new Map<string, string>();
+export function clearSpotifyTranslationCache() { translationCache.clear(); }
 
 export function parseSyncedLyrics(value: string): LyricLine[] {
   return value.split(/\r?\n/).flatMap(raw => {
@@ -30,7 +33,7 @@ async function translateLine(original: string, signal: AbortSignal): Promise<str
   return translation;
 }
 
-export function SpotifyLyrics({ track }: { track: SpotifyTrack }) {
+export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
   const [lines, setLines] = useState<LyricLine[]>([]);
   const [status, setStatus] = useState('Buscando letra…');
   const [translationStatus, setTranslationStatus] = useState('');
@@ -48,6 +51,7 @@ export function SpotifyLyrics({ track }: { track: SpotifyTrack }) {
 
   useEffect(() => {
     const controller = new AbortController();
+    const started = performance.now();
     setLines([]);
     setStatus('Buscando letra…');
     setTranslationStatus('');
@@ -78,6 +82,7 @@ export function SpotifyLyrics({ track }: { track: SpotifyTrack }) {
         if (controller.signal.aborted) return;
         setLines(next);
         setStatus(next.length ? '' : 'Letra não encontrada para esta faixa.');
+        onLookup({ kind: next.length ? 'miss' : 'error', durationMs: Math.round(performance.now() - started), at: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) });
         if (!next.length) return;
         setTranslationStatus('Traduzindo versos…');
         let failures = 0;
@@ -96,9 +101,9 @@ export function SpotifyLyrics({ track }: { track: SpotifyTrack }) {
         }));
         if (!controller.signal.aborted) setTranslationStatus(failures ? `Tradução indisponível para ${failures} verso(s).` : 'Tradução automática · revise antes de compartilhar.');
       })
-      .catch(error => { if (!controller.signal.aborted) setStatus(error instanceof Error ? error.message : 'Falha ao buscar letra.'); });
+      .catch(error => { if (!controller.signal.aborted) { setStatus(error instanceof Error ? error.message : 'Falha ao buscar letra.'); onLookup({ kind: 'error', durationMs: Math.round(performance.now() - started), at: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }); } });
     return () => controller.abort();
-  }, [track.id, track.title, track.artist, track.album, track.durationMs]);
+  }, [track.id, track.title, track.artist, track.album, track.durationMs, refreshKey, onLookup]);
 
   const synchronized = lines.some(line => line.at !== null);
   const activeIndex = synchronized ? lines.reduce((index, line, i) => line.at !== null && progressMs >= line.at ? i : index, -1) : -1;
@@ -110,15 +115,15 @@ export function SpotifyLyrics({ track }: { track: SpotifyTrack }) {
 
   return <div className="spotify-lyrics-wrap">
     <div className="lyrics-toolbar" role="group" aria-label="Visualização da letra">
-      <button className={view === 'both' ? 'selected' : ''} onClick={() => setView('both')}>Letra + Tradução</button>
-      <button className={view === 'original' ? 'selected' : ''} onClick={() => setView('original')}>Somente letra</button>
-      <button className={view === 'translation' ? 'selected' : ''} onClick={() => setView('translation')}>Somente tradução</button>
+      <button className={view === 'both' ? 'selected' : ''} onClick={() => setView('both')}><Languages size={16}/> Letra + Tradução</button>
+      <button className={view === 'original' ? 'selected' : ''} onClick={() => setView('original')}><Music2 size={16}/> Somente letra</button>
+      <button className={view === 'translation' ? 'selected' : ''} onClick={() => setView('translation')}><Languages size={16}/> Somente tradução</button>
     </div>
     {status && <p className="lyrics-message" role="status">{status}</p>}
     <div className="spotify-lyrics" ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
       {view !== 'translation' && <strong>{line.original}</strong>}
       {view !== 'original' && <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>}
     </div>)}</div>
-    {lines.length > 0 && <div className="lyrics-meta"><span>{synchronized ? 'Sincronizada com a reprodução do Spotify' : 'Esta faixa só tem letra sem tempos; destaque indisponível.'}</span><span>LRCLIB · {translationStatus || 'Tradução automática EN → PT-BR'}</span></div>}
+    {lines.length > 0 && <span className="sr-only">{synchronized ? 'Letra sincronizada com o Spotify.' : 'Esta faixa só tem letra sem tempos.'} {translationStatus}</span>}
   </div>;
 }

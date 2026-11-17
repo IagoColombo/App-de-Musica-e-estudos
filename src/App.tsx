@@ -2,13 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowLeft, ArrowRight, Check, ChevronDown, Clock3, Disc3, Heart, Home, ListMusic, Music2, Pause, Play, RotateCcw, Search, Settings2, ShieldCheck, SkipBack, SkipForward, Sparkles, Target, Volume2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Clock3, Disc3, Heart, Home, Languages, Music2, Pause, Play, Repeat2, Search, Settings2, Shuffle, SkipBack, SkipForward, Target, Volume2, X } from 'lucide-react';
 import { formatTime, songs } from './data';
 import { lyricsProxy, type ProxyEvent } from './lyricsService';
 import { recognizeMusicLink, type MusicSource } from './sourceRecognition';
 import { SpotifyPanel } from './SpotifyPanel';
-import { SpotifyLyrics } from './SpotifyLyrics';
-import { FocusBlocking } from './FocusBlocking';
+import { SpotifyLyrics, clearSpotifyTranslationCache, type SpotifyLookup } from './SpotifyLyrics';
+import { ProxyCard } from './ProxyCard';
+import { FocusSession } from './FocusSession';
 import type { SpotifyTrack } from './spotify';
 import { useAlbumPalette } from './useAlbumPalette';
 import { WindowControls } from './WindowControls';
@@ -19,13 +20,19 @@ const nav = [{ label: 'Início', icon: Home }, { label: 'Buscar', icon: Search }
 function App() {
   const [songIndex, setSongIndex] = useState(0);
   const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTrack | null>(null);
+  const [spotifyLookup, setSpotifyLookup] = useState<SpotifyLookup | null>(null);
+  const [spotifyRefresh, setSpotifyRefresh] = useState(0);
   const song = songs[songIndex];
   const albumPalette = useAlbumPalette(spotifyTrack?.image, song.accent);
-  const [position, setPosition] = useState(42);
+  const [position, setPosition] = useState(0);
   const [playing, setPlaying] = useState(false);
+  const [shuffle, setShuffle] = useState(false);
+  const [repeat, setRepeat] = useState(false);
+  const [lyricsView, setLyricsView] = useState<'both' | 'original' | 'translation'>('both');
   const [volume, setVolume] = useState(72);
   const [focus, setFocus] = useState(false);
   const [focusRunning, setFocusRunning] = useState(false);
+  const focusDeadline = useRef<number | null>(null);
   const [focusSeconds, setFocusSeconds] = useState(() => Math.min(240, Math.max(1, Number(localStorage.getItem('lyra:focusMinutes')) || 45)) * 60);
   const [focusMinutes, setFocusMinutes] = useState(() => Math.min(240, Math.max(1, Number(localStorage.getItem('lyra:focusMinutes')) || 45)));
   const [recognizedSource, setRecognizedSource] = useState<MusicSource | null>(null);
@@ -67,6 +74,7 @@ function App() {
     window.addEventListener('lyra:spotify-track', onTrack);
     return () => window.removeEventListener('lyra:spotify-track', onTrack);
   }, []);
+  useEffect(() => { setSpotifyLookup(null); }, [spotifyTrack?.id]);
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !hasAudio) return;
@@ -74,14 +82,12 @@ function App() {
     if (playing) audio.play().catch(() => setPlaying(false)); else audio.pause();
   }, [playing, hasAudio, song.id, volume]);
   useEffect(() => {
-    if (!playing || hasAudio) return;
-    const timer = window.setInterval(() => setPosition(p => p >= duration ? (setPlaying(false), 0) : p + 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [playing, hasAudio, duration]);
-
-  useEffect(() => {
     if (!focusRunning || !focus) return;
-    const timer = window.setInterval(() => setFocusSeconds(s => s > 0 ? s - 1 : (setFocusRunning(false), 0)), 1000);
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.ceil(((focusDeadline.current ?? Date.now()) - Date.now()) / 1000));
+      setFocusSeconds(remaining);
+      if (remaining === 0) { focusDeadline.current = null; setFocusRunning(false); }
+    }, 250);
     return () => window.clearInterval(timer);
   }, [focusRunning, focus]);
 
@@ -110,6 +116,14 @@ function App() {
     const id = songs[(next + songs.length) % songs.length].id;
     setHistory(old => [id, ...old.filter(item => item !== id)].slice(0, 20));
   }
+  function skipSong(direction: -1 | 1) {
+    if (shuffle && direction === 1 && songs.length > 1) {
+      const offset = 1 + Math.floor(Math.random() * (songs.length - 1));
+      changeSong(songIndex + offset);
+      return;
+    }
+    changeSong(songIndex + direction);
+  }
   function navigatePage(page: string) {
     setActiveNav(page);
     setNavigation(current => {
@@ -135,16 +149,31 @@ function App() {
     setPosition(0); setPlaying(false); setAudioDuration(null);
   }
   function seek(value: number) {
+    if (!hasAudio) return;
     setPosition(value);
     if (hasAudio && audioRef.current) audioRef.current.currentTime = value;
   }
   function toggleFavorite() { setFavorites(old => old.includes(song.id) ? old.filter(id => id !== song.id) : [...old, song.id]); }
-  function consultAgain() { setLyrics(lyricsProxy.getLyrics(song.id) ?? []); setEvents(lyricsProxy.history()); }
-  function clearCache() { lyricsProxy.clear(); setEvents([]); }
-  function toggleFocus() { setFocus(value => { if (value) setFocusRunning(false); return !value; }); }
+  function consultAgain() { if (spotifyTrack) { setSpotifyLookup(null); setSpotifyRefresh(value => value + 1); } else { setLyrics(lyricsProxy.getLyrics(song.id) ?? []); setEvents(lyricsProxy.history()); } }
+  function clearCache() { lyricsProxy.clear(); clearSpotifyTranslationCache(); setEvents([]); if (spotifyTrack) { setSpotifyLookup(null); setSpotifyRefresh(value => value + 1); } }
+  function toggleFocus() { setFocus(value => { if (value) { focusDeadline.current = null; setFocusRunning(false); } return !value; }); }
+  function toggleFocusRunning() {
+    if (focusRunning) {
+      setFocusSeconds(Math.max(0, Math.ceil(((focusDeadline.current ?? Date.now()) - Date.now()) / 1000)));
+      focusDeadline.current = null;
+      setFocusRunning(false);
+      return;
+    }
+    const seconds = focusSeconds || focusMinutes * 60;
+    setFocusSeconds(seconds);
+    focusDeadline.current = Date.now() + seconds * 1000;
+    setFocusRunning(true);
+  }
+  function stopFocus() { focusDeadline.current = null; setFocusRunning(false); setFocusSeconds(focusMinutes * 60); }
   function updateFocusMinutes(value: number) {
     const minutes = Math.min(240, Math.max(1, Math.round(value || 1)));
     setFocusMinutes(minutes);
+    focusDeadline.current = null;
     setFocusRunning(false);
     setFocusSeconds(minutes * 60);
   }
@@ -176,22 +205,20 @@ function App() {
         <section className="page-heading intro"><div><p className="eyebrow accent-text">MÚSICA EM FOCO</p><h1>Deixe a música falar.</h1></div><span className="source-pill"><span className="live-dot"/> {spotifyTrack ? 'Spotify' : 'Biblioteca local'} <ChevronDown size={14}/></span></section>
         {focus && <label className="focus-select">Faixa escolhida para foco <select value={focusSong} onChange={e => { setFocusSong(e.target.value); changeSong(songs.findIndex(s => s.id === e.target.value)); }}>{songs.map(s => <option key={s.id} value={s.id}>{s.title}</option>)}</select></label>}
         <div className="workspace">
-          <section className="player-column intro">{spotifyTrack && <div className="spotify-main-player">{spotifyTrack.image && <img src={spotifyTrack.image} alt={`Capa de ${spotifyTrack.album}`}/>}<p className="eyebrow">SPOTIFY · {spotifyTrack.isPlaying ? 'TOCANDO AGORA' : 'PAUSADA'}</p><h2>{spotifyTrack.title}</h2><p>{spotifyTrack.artist} · {spotifyTrack.album}</p><div className="spotify-progress"><span>{formatTime(spotifyTrack.progressMs / 1000)}</span><div className="spotify-progress-track"><span style={{ width: `${spotifyTrack.durationMs ? spotifyTrack.progressMs / spotifyTrack.durationMs * 100 : 0}%` }}/></div><span>{formatTime(spotifyTrack.durationMs / 1000)}</span></div><p className="spotify-playback-state">{spotifyTrack.isPlaying ? 'Reproduzindo no Spotify' : 'Pausada no Spotify'} · controles de reprodução no Spotify</p><a href={spotifyTrack.url} target="_blank" rel="noopener noreferrer">Abrir no Spotify ↗</a></div>}<div className={`artwork art-${song.id}`}><div className="art-halo"/><div className="art-sun"/><div className="art-hill one"/><div className="art-hill two"/><div className="art-grain"/><div className="art-label"><span>LYRAFLOW SESSIONS</span><strong>{song.album}</strong></div></div>
+          <section className="player-column intro">{spotifyTrack && <div className="spotify-main-player">{spotifyTrack.image && <img src={spotifyTrack.image} alt={`Capa de ${spotifyTrack.album}`}/>}<p className="eyebrow">SPOTIFY · {spotifyTrack.isPlaying ? 'TOCANDO AGORA' : 'PAUSADA'}</p><h2>{spotifyTrack.title}</h2><p>{spotifyTrack.artist} · {spotifyTrack.album}</p><div className="spotify-progress"><span>{formatTime(spotifyTrack.progressMs / 1000)}</span><div className="spotify-progress-track"><span style={{ width: `${spotifyTrack.durationMs ? spotifyTrack.progressMs / spotifyTrack.durationMs * 100 : 0}%` }}/></div><span>{formatTime(spotifyTrack.durationMs / 1000)}</span></div><a className="spotify-open-bar" href={spotifyTrack.url} target="_blank" rel="noopener noreferrer"><Disc3 size={19}/> Reproduzindo no Spotify <span aria-hidden="true">↗</span></a></div>}<div className={`artwork art-${song.id}`}><div className="art-halo"/><div className="art-sun"/><div className="art-hill one"/><div className="art-hill two"/><div className="art-grain"/><div className="art-label"><span>LYRAFLOW SESSIONS</span><strong>{song.album}</strong></div></div>
             <div className="song-title"><div><p className="eyebrow">TOCANDO AGORA</p><h2>{song.title}</h2><p>{song.artist} <span>·</span> {song.album}</p></div><button className={`icon-button ${favorites.includes(song.id) ? 'favorited' : ''}`} aria-label="Favorito" onClick={toggleFavorite}><Heart size={22} fill={favorites.includes(song.id) ? 'currentColor' : 'none'}/></button></div>
-            <div className="player-progress"><input aria-label="Posição da música" type="range" min="0" max={duration} value={position} onChange={e => seek(Number(e.target.value))} style={{'--range': `${position / duration * 100}%`} as React.CSSProperties}/><div><span>{formatTime(position)}</span><span>{formatTime(duration)}</span></div></div>
-            <div className="controls"><button aria-label="Faixa anterior" onClick={() => changeSong(songIndex - 1)}><SkipBack size={21} fill="currentColor"/></button><button className="play-button" aria-label={playing ? 'Pausar' : 'Reproduzir'} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} fill="currentColor"/> : <Play size={24} fill="currentColor"/>}</button><button aria-label="Próxima faixa" onClick={() => changeSong(songIndex + 1)}><SkipForward size={21} fill="currentColor"/></button></div>
-            <div className="volume"><Volume2 size={17}/><input aria-label="Volume de demonstração" type="range" min="0" max="100" value={volume} onChange={e => setVolume(Number(e.target.value))} style={{'--range': `${volume}%`} as React.CSSProperties}/><span>{volume}%</span></div>
-            <div className="local-note"><Music2 size={16}/><span>{hasAudio ? 'Áudio local associado a esta faixa' : 'Sem áudio: reprodução simulada'}</span></div>
+            <div className="player-progress"><input aria-label="Posição da música" type="range" min="0" max={duration} value={position} disabled={!hasAudio} onChange={e => seek(Number(e.target.value))} style={{'--range': `${position / duration * 100}%`} as React.CSSProperties}/><div><span>{formatTime(position)}</span><span>{formatTime(duration)}</span></div></div>
+            <div className="controls"><button aria-label="Reprodução aleatória" aria-pressed={shuffle} className={shuffle ? 'control-active' : ''} onClick={() => setShuffle(value => !value)}><Shuffle size={19}/></button><button aria-label="Faixa anterior" onClick={() => skipSong(-1)}><SkipBack size={21} fill="currentColor"/></button><button className="play-button" aria-label={playing ? 'Pausar' : 'Reproduzir áudio local'} disabled={!hasAudio} title={!hasAudio ? 'Associe um arquivo de áudio para reproduzir' : undefined} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} fill="currentColor"/> : <Play size={24} fill="currentColor"/>}</button><button aria-label="Próxima faixa" onClick={() => skipSong(1)}><SkipForward size={21} fill="currentColor"/></button><button aria-label="Repetir faixa" aria-pressed={repeat} className={repeat ? 'control-active' : ''} onClick={() => setRepeat(value => !value)}><Repeat2 size={19}/></button></div>
+            <div className="volume"><Volume2 size={17}/><input aria-label="Volume do áudio local" type="range" min="0" max="100" value={volume} onChange={e => setVolume(Number(e.target.value))} style={{'--range': `${volume}%`} as React.CSSProperties}/><span>{volume}%</span></div>
+            <div className="local-note"><Music2 size={16}/><span>{hasAudio ? 'Áudio local associado a esta faixa' : 'Associe um áudio local para reproduzir'}</span></div>
             <input ref={fileRef} type="file" accept="audio/*" hidden onChange={e => importAudio(e.target.files?.[0])}/><button className="audio-import" onClick={() => fileRef.current?.click()}>Associar áudio local a esta faixa</button>
-            <audio ref={audioRef} src={audioUrls[song.id]} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)} onEnded={() => setPlaying(false)}/>
+            <audio ref={audioRef} src={audioUrls[song.id]} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)} onEnded={e => { if (repeat) { e.currentTarget.currentTime = 0; void e.currentTarget.play(); } else setPlaying(false); }}/>
           </section>
-          <section className="lyrics-column intro"><div className="panel-heading"><div><h2>Letra e tradução</h2></div><button className="font-button" title="Tamanho da letra" onClick={() => document.querySelector('.lyrics-column')?.classList.toggle('large-type')}>Aa</button></div>
-            {spotifyTrack ? <SpotifyLyrics track={spotifyTrack}/> : <><div className="lyric-list" ref={lyricList}>{lyrics.map((line, i) => <button key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)}><span className="lyric-time">{formatTime(line.at)}</span><strong>{line.original}</strong><em>{line.translation}</em></button>)}</div><div className="lyrics-footer"><Sparkles size={15}/> Toque em um verso para avançar a prévia</div></>}
+          <section className="lyrics-column intro"><div className="panel-heading"><h2>Letra e tradução</h2><button className="font-button" aria-label="Alterar tamanho da letra" title="Tamanho da letra" onClick={() => document.querySelector('.lyrics-column')?.classList.toggle('large-type')}>Aa</button></div>
+            {spotifyTrack ? <SpotifyLyrics track={spotifyTrack} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : <><div className="lyrics-toolbar" role="group" aria-label="Visualização da letra"><button className={lyricsView === 'both' ? 'selected' : ''} onClick={() => setLyricsView('both')}><Languages size={16}/> Letra + Tradução</button><button className={lyricsView === 'original' ? 'selected' : ''} onClick={() => setLyricsView('original')}><Music2 size={16}/> Somente letra</button><button className={lyricsView === 'translation' ? 'selected' : ''} onClick={() => setLyricsView('translation')}><Languages size={16}/> Somente tradução</button></div><div className="lyric-list" ref={lyricList}>{lyrics.map((line, i) => <button key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)} disabled={!hasAudio} title={!hasAudio ? 'Associe um áudio para buscar nesta letra' : undefined}><span className="lyric-time">{formatTime(line.at)}</span>{lyricsView !== 'translation' && <strong>{line.original}</strong>}{lyricsView !== 'original' && <em>{line.translation}</em>}</button>)}</div></>}
+            <button className="focus-shortcut" onClick={toggleFocus} role="switch" aria-checked={focus}><span><Target size={18}/> Modo Estudo / Trabalho</span><span title="O bloqueio depende da opção escolhida na sessão de foco">ⓘ</span><span className={`switch ${focus ? 'on' : ''}`}><span/></span></button>
           </section>
-          <aside className="right-column intro"><div className="proxy-card"><div className="card-head"><div className="icon-square"><Disc3 size={20}/></div><div><p className="eyebrow">POR TRÁS DA MÚSICA</p><h3>Proxy Engine</h3></div></div><div className={`status ${events[0]?.kind ?? 'miss'}`}><Check size={17}/><div><strong>{events[0]?.kind === 'hit' ? 'Cache Hit' : events[0]?.kind === 'missing' ? 'Não encontrada' : 'Cache Miss'}</strong><small>{events[0]?.kind === 'hit' ? 'Letra reutilizada do cache' : 'Consulta ao serviço local'}</small></div></div><div className="proxy-detail"><span>Fonte</span><b>LyricsService local</b></div><div className="proxy-detail"><span>Idioma</span><b>Inglês · Português</b></div><div className="proxy-actions"><button onClick={consultAgain}>Consultar novamente</button><button onClick={clearCache} title="Limpar cache"><RotateCcw size={16}/></button></div><div className="event-title">ATIVIDADE RECENTE</div><div className="events">{events.slice(0, 3).map((e, i) => <div key={`${e.at}-${i}`}><span className={`event-dot ${e.kind}`}/><span>{e.kind === 'hit' ? 'Cache Hit' : e.kind === 'miss' ? 'Cache Miss' : 'Sem letra'}</span><time>{e.at}</time></div>)}</div></div>
-            <div className="focus-card"><div className="focus-top"><div className="focus-title"><span className="focus-icon"><Target size={20}/></span><div><h3>Estudo / Trabalho</h3></div></div><button className={`switch ${focus ? 'on' : ''}`} role="switch" aria-checked={focus} aria-label="Ativar modo de foco" onClick={toggleFocus}><span/></button></div>{focus ? <div className="focus-body"><div className="focus-playlist"><ListMusic size={18}/><div><strong>Faixa de foco</strong><small>{songs.find(s => s.id === focusSong)?.title}</small></div></div><label className="duration-field">Duração da sessão <span><input type="number" min="1" max="240" value={focusMinutes} onChange={e => updateFocusMinutes(Number(e.target.value))} aria-label="Duração em minutos"/> min</span></label><div className="duration-presets">{[25, 45, 60, 90].map(minutes => <button key={minutes} className={focusMinutes === minutes ? 'chosen' : ''} onClick={() => updateFocusMinutes(minutes)}>{minutes} min</button>)}</div><div className="focus-timer"><span>{formatTime(focusSeconds)}</span><div><button onClick={() => { if (focusSeconds === 0) setFocusSeconds(focusMinutes * 60); setFocusRunning(!focusRunning); }}>{focusRunning ? <Pause size={16} fill="currentColor"/> : <Play size={16} fill="currentColor"/>}{focusRunning ? 'Pausar' : 'Iniciar'}</button><button className="timer-reset" title="Reiniciar tempo" aria-label="Reiniciar tempo" onClick={() => { setFocusRunning(false); setFocusSeconds(focusMinutes * 60); }}><RotateCcw size={15}/></button></div></div><button className="limit-row" onClick={() => setShowRules(true)}><ShieldCheck size={18}/> {blocked.length} sites na lista de foco <ArrowRight size={15}/></button><p className="focus-hint">O bloqueio segue a opção selecionada abaixo.</p></div> : <p className="focus-off">Ative para escolher a faixa e iniciar uma sessão.</p>}</div>
-            <FocusBlocking active={focus && focusRunning && focusSeconds > 0} domains={blocked}/>
-          </aside>
+          <aside className="right-column intro"><ProxyCard title={spotifyTrack?.title ?? song.title} events={events} spotifyLookup={spotifyTrack ? spotifyLookup : undefined} onRefresh={consultAgain} onClear={clearCache}/><FocusSession enabled={focus} running={focusRunning} seconds={focusSeconds} minutes={focusMinutes} songTitle={songs.find(s => s.id === focusSong)?.title ?? song.title} blocked={blocked} onToggle={toggleFocus} onToggleRunning={toggleFocusRunning} onStop={stopFocus} onMinutes={updateFocusMinutes} onSettings={() => setShowRules(true)}/></aside>
         </div>
       </div>
     </div>

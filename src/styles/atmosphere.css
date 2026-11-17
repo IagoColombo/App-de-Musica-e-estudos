@@ -6,7 +6,7 @@
   --album-accent: var(--color-gold);
   --album-glow: rgb(146 91 45 / 32%);
   --album-deep: #142326;
-  background: radial-gradient(ellipse at 58% 18%, var(--album-glow), transparent 60%), var(--album-deep);
+  background: radial-gradient(ellipse at 58% 18%, var(--album-glow), transparent 54%), linear-gradient(135deg, #0b1d23, color-mix(in srgb, var(--album-deep) 48%, #0b1e24), #0b1a20);
 }
 
 .app.spotify-active::before { display: none; }
