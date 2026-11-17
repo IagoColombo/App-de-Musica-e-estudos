@@ -12,15 +12,24 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Baixar código
+        shell: pwsh
+        working-directory: C:\
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh repo clone "${{ github.repository }}" 'C:\lyraflow-source' -- --no-checkout
+          git -C 'C:\lyraflow-source' checkout "${{ github.sha }}"
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
       - run: npm ci
+        working-directory: C:\lyraflow-source
       - run: npm run desktop:build
+        working-directory: C:\lyraflow-source
       - name: Publicar executável e instalador
         shell: pwsh
+        working-directory: C:\lyraflow-source
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
