@@ -20,7 +20,7 @@ npm run desktop:build
 
 O instalador NSIS será gerado em `src-tauri/target/release/bundle/nsis/`. Feche o LyraFlow antes de compilar: o Windows impede substituir um `.exe` que esteja aberto. Use `npm run desktop:dev` para ver alterações do front-end durante o desenvolvimento; o executável de distribuição só muda após `npm run desktop:build`.
 
-Para gerar apenas o executável, use `npm run desktop:exe`. Ele aparece em `src-tauri/target/release/lyraflow.exe`. Builds publicados de cada commit enviado para `main` estão em [Releases do GitHub](https://github.com/IagoColombo/App-de-Musica-e-estudos./releases); o repositório é privado, então o download requer acesso à conta autorizada. O workflow envia apenas `lyraflow.exe` e o instalador NSIS, nunca os dados locais do usuário.
+Para gerar apenas o executável, use `npm run desktop:exe`. Ele aparece em `src-tauri/target/release/lyraflow.exe`. Builds publicados de cada commit enviado para `main` estão em [Releases do GitHub](https://github.com/IagoColombo/App-de-Musica-e-estudos/releases); o repositório é privado, então o download requer acesso à conta autorizada. O workflow envia apenas `lyraflow.exe` e o instalador NSIS, nunca os dados locais do usuário.
 
 ## Conectar Spotify
 

@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Player de letras sincronizadas com traducao e modo de foco"
 authors = []
 license = ""
-repository = "https://github.com/IagoColombo/App-de-Musica-e-estudos."
+repository = "https://github.com/IagoColombo/App-de-Musica-e-estudos"
 edition = "2024"
 rust-version = "1.90"
 
