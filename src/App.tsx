@@ -7,10 +7,11 @@ import { formatTime, songs } from './data';
 import { lyricsProxy, type ProxyEvent } from './lyricsService';
 import { recognizeMusicLink, type MusicSource } from './sourceRecognition';
 import { SpotifyPanel } from './SpotifyPanel';
+import { SpotifyLibrary } from './SpotifyLibrary';
 import { SpotifyLyrics, clearSpotifyTranslationCache, type SpotifyLookup } from './SpotifyLyrics';
 import { ProxyCard } from './ProxyCard';
 import { FocusSession } from './FocusSession';
-import type { SpotifyTrack } from './spotify';
+import type { SpotifySession, SpotifyTrack } from './spotify';
 import { useAlbumPalette } from './useAlbumPalette';
 import { WindowControls } from './WindowControls';
 
@@ -44,6 +45,7 @@ function App() {
   const [activeNav, setActiveNav] = useState('Início');
   const [navigation, setNavigation] = useState({ pages: ['Início'], index: 0 });
   const [spotifyConnected, setSpotifyConnected] = useState(false);
+  const [spotifySession, setSpotifySession] = useState<SpotifySession | null>(null);
   const [showSpotifyPanel, setShowSpotifyPanel] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('lyra:favorites') || '[]'));
   const [history, setHistory] = useState<string[]>(() => JSON.parse(localStorage.getItem('lyra:history') || '[]'));
@@ -99,13 +101,17 @@ function App() {
   useGSAP(() => {
     const mm = gsap.matchMedia();
     mm.add('(prefers-reduced-motion: no-preference)', () => {
-      gsap.from('.intro', { autoAlpha: 0, y: 16, duration: .65, ease: 'power2.out', stagger: .08 });
+      gsap.from(gsap.utils.toArray<HTMLElement>('.intro').filter(el => el.offsetParent !== null), { autoAlpha: 0, y: 20, duration: .68, ease: 'power3.out', stagger: .085, clearProps: 'transform,opacity,visibility' });
+      if (activeNav === 'Spotify') {
+        gsap.from('.library-hero-main > *', { autoAlpha: 0, x: -28, duration: .75, ease: 'power3.out', stagger: .13, clearProps: 'transform,opacity,visibility' });
+        gsap.from('.library-playlist', { autoAlpha: 0, y: 18, duration: .46, ease: 'power2.out', stagger: .055, clearProps: 'transform,opacity,visibility' });
+      }
       if (lyricList.current) gsap.utils.toArray<HTMLElement>('.lyric').forEach(el => {
         gsap.from(el, { autoAlpha: 0, y: 14, duration: .45, ease: 'power1.out', scrollTrigger: { trigger: el, scroller: lyricList.current!, start: 'top 90%', once: true } });
       });
     });
     return () => mm.revert();
-  }, { scope: root, dependencies: [song.id] });
+  }, { scope: root, dependencies: [song.id, activeNav] });
 
   useEffect(() => {
     const el = lyricList.current?.querySelector<HTMLElement>('.lyric.active');
@@ -217,8 +223,8 @@ function App() {
       <div className="brand"><span className="brand-mark"><i/><i/><i/><i/><i/></span><b>LyraFlow</b></div>
       <div className="side-group">{nav.map(({ label, icon: Icon }) => <button key={label} className={`nav-item ${activeNav === label ? 'selected' : ''}`} onClick={() => navigatePage(label)}><Icon size={19}/>{label}</button>)}</div>
       <div className="side-rule"/><div className="side-caption">FONTES DE MÚSICA</div>
-      <button className={`nav-item source-nav ${showSpotifyPanel ? 'selected' : ''}`} onClick={() => setShowSpotifyPanel(value => !value)} aria-expanded={showSpotifyPanel}><Disc3 size={20} className="spotify-source-icon"/><span>Spotify<small className={spotifyConnected ? 'source-connected' : ''}>{spotifyConnected ? 'Conectado' : 'Conectar'}</small></span></button>
-      <div className={`sidebar-spotify ${showSpotifyPanel ? 'open' : ''}`}><SpotifyPanel onConnectionChange={setSpotifyConnected}/></div>
+      <button className={`nav-item source-nav ${activeNav === 'Spotify' || showSpotifyPanel ? 'selected' : ''}`} onClick={() => { if (activeNav === 'Spotify') setShowSpotifyPanel(value => !value); else { navigatePage('Spotify'); if (!spotifyConnected) setShowSpotifyPanel(true); } }} aria-expanded={showSpotifyPanel}><Disc3 size={20} className="spotify-source-icon"/><span>Spotify<small className={spotifyConnected ? 'source-connected' : ''}>{spotifyConnected ? 'Conectado' : 'Conectar'}</small></span></button>
+      <div className={`sidebar-spotify ${showSpotifyPanel ? 'open' : ''}`}><SpotifyPanel onConnectionChange={setSpotifyConnected} onSessionChange={setSpotifySession} onOpenLibrary={() => navigatePage('Spotify')}/></div>
       <button className="nav-item source-nav" onClick={() => { navigatePage('Buscar'); document.querySelector<HTMLInputElement>('.search input')?.focus(); }}><Play size={20} className="youtube-source-icon"/><span>YouTube<small>Colar link</small></span></button>
       <button className={`nav-item source-nav ${activeNav === 'Biblioteca' ? 'selected' : ''}`} onClick={() => navigatePage('Biblioteca')}><Music2 size={20}/><span>Arquivo local<small>Biblioteca</small></span></button>
       <div className="sidebar-bottom"><button className="nav-item" onClick={() => setShowRules(true)}><Settings2 size={19}/> Configurações</button></div>
@@ -228,7 +234,8 @@ function App() {
         <div className="search-wrap"><label className="search"><Search size={20}/><input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key !== 'Enter') return; if (queryLooksLikeLink) { detectMusicLink(query); setQuery(''); } else if (shownSongs[0]) { changeSong(songs.indexOf(shownSongs[0])); navigatePage('Início'); } }} placeholder="Buscar música, artista ou colar um link..."/></label>{query && <div className="search-results">{queryLooksLikeLink ? <button onClick={() => { detectMusicLink(query); setQuery(''); }}><Search size={16}/> Identificar link do Spotify ou YouTube</button> : shownSongs.length ? shownSongs.map((s) => <button key={s.id} onClick={() => { changeSong(songs.indexOf(s)); navigatePage('Início'); }}><Music2 size={16}/><span>{s.title}<small>{s.artist}</small></span></button>) : <p>Nenhuma faixa local encontrada.</p>}</div>}{(recognizedSource || linkError) && <div className="search-link-result">{recognizedSource ? <><div><strong>{recognizedSource.provider} identificado</strong><button onClick={() => setRecognizedSource(null)} aria-label="Fechar link"><X size={15}/></button></div><iframe title={`Player ${recognizedSource.provider}`} src={recognizedSource.embedUrl} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen loading="lazy"/><a href={recognizedSource.url} target="_blank" rel="noopener noreferrer">Abrir no {recognizedSource.provider} ↗</a></> : <p role="alert">{linkError}</p>}</div>}</div>
         <WindowControls/></header>
       <div className="content">
-        {activeNav !== 'Início' && <div className="collection"><div><p className="eyebrow">{activeNav === 'Buscar' ? 'ENCONTRE SUA MÚSICA' : 'SUA BIBLIOTECA'}</p><h2>{activeNav}</h2><p className="collection-intro">{activeNav === 'Buscar' ? 'Busque uma faixa local pelo nome ou artista na barra acima. Você também pode colar um link.' : activeNav === 'Favoritos' ? 'As músicas que você marcou para ouvir de novo.' : activeNav === 'Histórico' ? 'As últimas faixas que você abriu.' : 'Faixas disponíveis para associar um arquivo de áudio local.'}</p></div><div className="collection-list">{(activeNav === 'Buscar' ? shownSongs : activeNav === 'Favoritos' ? songs.filter(s => favorites.includes(s.id)) : activeNav === 'Histórico' ? history.map(id => songs.find(s => s.id === id)).filter((s): s is typeof songs[number] => Boolean(s)) : songs).map(s => <button key={s.id} onClick={() => { changeSong(songs.indexOf(s)); navigatePage('Início'); }}><Music2 size={17}/><span>{s.title}<small>{s.artist}</small></span><ArrowRight size={15}/></button>)}{activeNav === 'Favoritos' && favorites.length === 0 && <p>Nenhuma faixa favorita ainda.</p>}{activeNav === 'Histórico' && history.length === 0 && <p>O histórico aparece após você escolher uma faixa.</p>}{activeNav === 'Buscar' && shownSongs.length === 0 && <p>Nenhuma faixa local encontrada.</p>}</div></div>}
+        {activeNav !== 'Início' && activeNav !== 'Spotify' && <div className="collection"><div><p className="eyebrow">{activeNav === 'Buscar' ? 'ENCONTRE SUA MÚSICA' : 'SUA BIBLIOTECA'}</p><h2>{activeNav}</h2><p className="collection-intro">{activeNav === 'Buscar' ? 'Busque uma faixa local pelo nome ou artista na barra acima. Você também pode colar um link.' : activeNav === 'Favoritos' ? 'As músicas que você marcou para ouvir de novo.' : activeNav === 'Histórico' ? 'As últimas faixas que você abriu.' : 'Faixas disponíveis para associar um arquivo de áudio local.'}</p></div><div className="collection-list">{(activeNav === 'Buscar' ? shownSongs : activeNav === 'Favoritos' ? songs.filter(s => favorites.includes(s.id)) : activeNav === 'Histórico' ? history.map(id => songs.find(s => s.id === id)).filter((s): s is typeof songs[number] => Boolean(s)) : songs).map(s => <button key={s.id} onClick={() => { changeSong(songs.indexOf(s)); navigatePage('Início'); }}><Music2 size={17}/><span>{s.title}<small>{s.artist}</small></span><ArrowRight size={15}/></button>)}{activeNav === 'Favoritos' && favorites.length === 0 && <p>Nenhuma faixa favorita ainda.</p>}{activeNav === 'Histórico' && history.length === 0 && <p>O histórico aparece após você escolher uma faixa.</p>}{activeNav === 'Buscar' && shownSongs.length === 0 && <p>Nenhuma faixa local encontrada.</p>}</div></div>}
+        {activeNav === 'Spotify' && <SpotifyLibrary session={spotifySession} onSessionChange={setSpotifySession} onOpenConnection={() => setShowSpotifyPanel(true)} onBack={() => navigatePage('Início')}/>}
         <div className="home-view" hidden={activeNav !== 'Início'}>
         <section className="page-heading intro"><div><p className="eyebrow accent-text">MÚSICA EM FOCO</p><h1>Deixe a música falar.</h1></div><span className="source-pill"><span className="live-dot"/> {spotifyTrack ? 'Spotify' : 'Biblioteca local'} <ChevronDown size={14}/></span></section>
         <div className="workspace">

@@ -145,7 +145,7 @@ async fn spotify_authorize(client_id: String, challenge: String, state: String) 
     let listener = TcpListener::bind("127.0.0.1:47831").map_err(|e| format!("Não foi possível abrir a porta local 47831: {e}"))?;
     listener.set_nonblocking(true).map_err(|e| e.to_string())?;
     let redirect_uri = format!("http://127.0.0.1:{}/spotify-callback", listener.local_addr().map_err(|e| e.to_string())?.port());
-    let auth_url = format!("https://accounts.spotify.com/authorize?response_type=code&client_id={client_id}&scope=user-read-currently-playing&redirect_uri={}&code_challenge_method=S256&code_challenge={challenge}&state={state}",
+    let auth_url = format!("https://accounts.spotify.com/authorize?response_type=code&client_id={client_id}&scope=user-read-currently-playing%20playlist-read-private%20playlist-read-collaborative%20user-library-read%20user-modify-playback-state&redirect_uri={}&code_challenge_method=S256&code_challenge={challenge}&state={state}",
       redirect_uri.replace(':', "%3A").replace('/', "%2F"));
     #[cfg(target_os = "windows")]
     std::process::Command::new("rundll32.exe").args(["url.dll,FileProtocolHandler", &auth_url]).spawn().map_err(|e| format!("Não foi possível abrir o navegador: {e}"))?;

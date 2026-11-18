@@ -25,10 +25,11 @@ Para gerar apenas o executável, use `npm run desktop:exe`. Ele aparece em `src-
 ## Conectar Spotify
 
 1. O **Client ID público deste projeto** é `f2b88e25eefc497f886ba7a8ca13c1db`. A URI de redirecionamento cadastrada no [Spotify for Developers](https://developer.spotify.com/dashboard) é `http://127.0.0.1:47831/spotify-callback`. Não é necessário usar o Client Secret e ele não deve ser publicado.
-2. Abra o LyraFlow desktop, informe esse Client ID no painel Spotify da sidebar e clique em **Conectar Spotify**. Autorize o acesso no navegador. O app pede apenas `user-read-currently-playing`.
-3. O painel consulta a faixa em reprodução a cada 5 segundos. A sessão fica somente na memória do aplicativo; ao fechá-lo, conecte novamente. O Client ID é salvo localmente.
+2. Abra o LyraFlow desktop, informe esse Client ID no painel Spotify da sidebar e clique em **Conectar Spotify**. Autorize o acesso no navegador. O app pede leitura da faixa atual, das playlists e das músicas curtidas, além de permissão para controlar a reprodução no Spotify. Quem já havia conectado uma versão anterior precisa clicar em **Atualizar permissões** uma vez.
+3. O painel consulta a faixa em reprodução a cada 5 segundos. A sessão e o Client ID ficam salvos localmente no perfil do LyraFlow; ao reiniciar, o app renova o acesso automaticamente enquanto a autorização do Spotify for válida. **Desconectar** apaga a sessão local. Os tokens não entram no repositório nem nos builds.
+4. Clique em **Spotify** na sidebar para ver suas playlists e músicas curtidas. Escolha uma faixa para enviá-la ao aplicativo Spotify que estiver ativo no seu dispositivo. O áudio não é reproduzido dentro do LyraFlow.
 
-O Spotify pode exigir conta Premium do dono do aplicativo em modo de desenvolvimento e limitar os usuários autorizados. A integração lê metadados da faixa; o áudio e as letras do painel local não são substituídos pelo Spotify.
+O controle de reprodução exige Spotify Premium e um dispositivo ativo. No modo de desenvolvimento da API, playlists seguidas podem aparecer sem liberar sua lista de faixas; playlists suas ou colaborativas são acessíveis. Autorizações antigas ou expiradas podem exigir nova conexão. O player local e suas letras continuam independentes.
 
 ## Bloqueio de sites no Chrome ou Edge
 
@@ -48,6 +49,6 @@ No painel Estudo / Trabalho, escolha **Windows** e inicie uma sessão. O LyraFlo
 - `LyricsProxy` consulta `LyricsService`, mantém cache em memória e mostra hits e misses no painel. Quando o Spotify está em foco, o painel mostra a consulta real ao LRCLIB e a tradução via MyMemory.
 - Favoritos, histórico, faixa escolhida para foco e lista de sites persistem no navegador local.
 - Modo Estudo / Trabalho com playlist local configurável, temporizador e lista de sites. A próxima faixa toca automaticamente quando há áudio associado; a sessão pausa se faltar o arquivo. O modo Windows bloqueia os domínios escolhidos via `hosts`; a extensão bloqueia no Chrome/Edge. Aplicativos não são bloqueados.
-- Links de faixas Spotify e vídeos YouTube são identificados e exibidos em players incorporados. A leitura automática da faixa Spotify usa a API oficial após autorização. YouTube não é monitorado fora do app; importação de playlists e letras reais ainda não estão conectadas.
+- Links de faixas Spotify e vídeos YouTube são identificados e exibidos em players incorporados. Após autorização, o LyraFlow mostra as playlists do Spotify e solicita a reprodução de faixas no cliente Spotify. YouTube não é monitorado fora do app.
 
 O planejamento completo está no `PROJECT.md`, se copiado para este diretório.
