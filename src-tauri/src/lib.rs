@@ -17,6 +17,7 @@ struct FocusState(Arc<Mutex<FocusSnapshot>>);
 
 const FOCUS_BEGIN: &str = "# LyraFlow Focus BEGIN";
 const FOCUS_END: &str = "# LyraFlow Focus END";
+static HOSTS_LOCK: Mutex<()> = Mutex::new(());
 
 fn apply_windows_block(active: bool, domains: Vec<String>) -> std::io::Result<usize> {
   let hosts = std::path::PathBuf::from(std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into()))
@@ -38,7 +39,7 @@ fn apply_windows_block(active: bool, domains: Vec<String>) -> std::io::Result<us
     content.push_str(FOCUS_BEGIN);
     content.push_str("\r\n");
     for domain in &accepted {
-      content.push_str(&format!("0.0.0.0 {domain}\r\n0.0.0.0 www.{domain}\r\n"));
+      content.push_str(&format!("0.0.0.0 {domain}\r\n0.0.0.0 www.{domain}\r\n::1 {domain}\r\n::1 www.{domain}\r\n"));
     }
     content.push_str(FOCUS_END);
   }
@@ -48,17 +49,26 @@ fn apply_windows_block(active: bool, domains: Vec<String>) -> std::io::Result<us
   }
   content.push_str("\r\n");
   std::fs::write(&hosts, content)?;
+  #[cfg(target_os = "windows")]
+  {
+    use std::os::windows::process::CommandExt;
+    let _ = std::process::Command::new("ipconfig.exe").arg("/flushdns").creation_flags(0x0800_0000).status();
+  }
   Ok(accepted.len())
 }
 
 #[tauri::command]
 async fn set_windows_block(active: bool, domains: Vec<String>) -> Result<usize, String> {
   tauri::async_runtime::spawn_blocking(move || {
+    let _guard = HOSTS_LOCK.lock().map_err(|e| e.to_string())?;
     match apply_windows_block(active, domains.clone()) {
       Ok(count) => Ok(count),
       Err(error) if error.kind() == std::io::ErrorKind::PermissionDenied => {
         run_elevated_focus_helper(active, &domains)?;
-        Ok(domains.iter().filter(|domain| valid_domain(domain)).count())
+        let hosts = std::path::PathBuf::from(std::env::var("SystemRoot").unwrap_or_else(|_| "C:\\Windows".into())).join("System32\\drivers\\etc\\hosts");
+        let saved = std::fs::read_to_string(hosts).map_err(|e| e.to_string())?;
+        if saved.contains(FOCUS_BEGIN) != active { return Err("O Windows não confirmou o bloqueio. Tente novamente e aceite a permissão.".into()); }
+        Ok(if active { domains.iter().filter(|domain| valid_domain(domain)).count() } else { 0 })
       }
       Err(error) => Err(format!("Não foi possível atualizar o bloqueio do Windows: {error}")),
     }

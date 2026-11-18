@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { ArrowLeft, ArrowRight, ChevronDown, Clock3, Disc3, Heart, Home, Languages, Music2, Pause, Play, Repeat2, Search, Settings2, Shuffle, SkipBack, SkipForward, Target, Volume2, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronDown, Clock3, Disc3, Heart, Home, Music2, Pause, Play, Repeat2, Search, Settings2, Shuffle, SkipBack, SkipForward, Target, Volume2, X } from 'lucide-react';
 import { formatTime, songs } from './data';
 import { lyricsProxy, type ProxyEvent } from './lyricsService';
 import { recognizeMusicLink, type MusicSource } from './sourceRecognition';
@@ -28,7 +28,6 @@ function App() {
   const [playing, setPlaying] = useState(false);
   const [shuffle, setShuffle] = useState(false);
   const [repeat, setRepeat] = useState(false);
-  const [lyricsView, setLyricsView] = useState<'both' | 'original' | 'translation'>('both');
   const [volume, setVolume] = useState(72);
   const [focus, setFocus] = useState(false);
   const [focusRunning, setFocusRunning] = useState(false);
@@ -242,7 +241,7 @@ function App() {
             <audio ref={audioRef} src={audioUrls[song.id]} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)} onEnded={e => handleAudioEnded(e.currentTarget)}/>
           </section>
           <section className="lyrics-column intro"><div className="panel-heading"><h2>Letra e tradução</h2><button className="font-button" aria-label="Alterar tamanho da letra" title="Tamanho da letra" onClick={() => document.querySelector('.lyrics-column')?.classList.toggle('large-type')}>Aa</button></div>
-            {spotifyTrack ? <SpotifyLyrics track={spotifyTrack} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : <><div className="lyrics-toolbar" role="group" aria-label="Visualização da letra"><button className={lyricsView === 'both' ? 'selected' : ''} onClick={() => setLyricsView('both')}><Languages size={16}/> Letra + Tradução</button><button className={lyricsView === 'original' ? 'selected' : ''} onClick={() => setLyricsView('original')}><Music2 size={16}/> Somente letra</button><button className={lyricsView === 'translation' ? 'selected' : ''} onClick={() => setLyricsView('translation')}><Languages size={16}/> Somente tradução</button></div><div className="lyric-list" ref={lyricList}>{lyrics.map((line, i) => <button key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)} disabled={!hasAudio} title={!hasAudio ? 'Associe um áudio para buscar nesta letra' : undefined}><span className="lyric-time">{formatTime(line.at)}</span>{lyricsView !== 'translation' && <strong>{line.original}</strong>}{lyricsView !== 'original' && <em>{line.translation}</em>}</button>)}</div></>}
+            {spotifyTrack ? <SpotifyLyrics track={spotifyTrack} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : <><div className="lyric-list" ref={lyricList}>{lyrics.map((line, i) => <button key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)} disabled={!hasAudio} title={!hasAudio ? 'Associe um áudio para buscar nesta letra' : undefined}><span className="lyric-time">{formatTime(line.at)}</span><strong>{line.original}</strong><em>{line.translation}</em></button>)}</div></>}
             <button className="focus-shortcut" onClick={toggleFocus} role="switch" aria-checked={focus}><span><Target size={18}/> Modo Estudo / Trabalho</span><span title="O bloqueio depende da opção escolhida na sessão de foco">ⓘ</span><span className={`switch ${focus ? 'on' : ''}`}><span/></span></button>
           </section>
           <aside className="right-column intro"><ProxyCard title={spotifyTrack?.title ?? song.title} events={events} spotifyLookup={spotifyTrack ? spotifyLookup : undefined} onRefresh={consultAgain} onClear={clearCache}/><FocusSession enabled={focus} running={focusRunning} seconds={focusSeconds} minutes={focusMinutes} songTitle={songs.find(s => s.id === focusSong)?.title ?? song.title} playlistCount={focusPlaylist.length} blocked={blocked} onToggle={toggleFocus} onToggleRunning={toggleFocusRunning} onStop={stopFocus} onMinutes={updateFocusMinutes} onSettings={() => setShowRules(true)}/></aside>

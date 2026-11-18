@@ -1,0 +1,58 @@
+/* Music takes the foreground; the surrounding chrome stays quiet. */
+:root {
+  --font-body: 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --font-display: 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --radius-card: 12px;
+  --radius-md: 8px;
+  --color-border: rgb(190 212 210 / 13%);
+}
+body, button, input, select { font-family: var(--font-body); }
+.sidebar { width: 220px; padding: 30px 17px 20px; background: #09171c; }
+.brand { font-family: var(--font-display); font-weight: 400; letter-spacing: -.04em; }
+.sidebar .nav-item { border-radius: 8px; font-size: 15px; padding: 12px 13px; }
+.sidebar .nav-item.selected { background: #183d42; }
+.sidebar .source-nav small { font-size: 12px; }
+.topbar { border-bottom-color: rgb(255 255 255 / 7%); }
+.topbar .search { background: #10252a; border-color: #294147; border-radius: 10px; }
+.main-area { background: radial-gradient(ellipse at 40% 30%, var(--album-glow), transparent 72%), #0b1b21; }
+.main-area::before { opacity: .11; filter: blur(75px) saturate(.6); }
+.content { max-width: 1680px; padding-top: 30px; }
+.page-heading { display: none; }
+.workspace { align-items: start; }
+.player-column .artwork, .spotify-main-player img { border-radius: 9px; border: 0; box-shadow: 0 22px 50px #0005; }
+.song-title { align-items: start; gap: 10px; margin-top: 24px; }
+.song-title h2, .spotify-main-player h2 { font: 400 clamp(28px, 2.1vw, 36px)/1.16 var(--font-display); letter-spacing: -.035em; }
+.song-title .eyebrow, .spotify-main-player .eyebrow { display: none; }
+.song-title p:not(.eyebrow) { line-height: 1.7; color: #b0c1c1; font-size: 14px; }
+.song-title .icon-button { border: 0; background: none; margin-top: 4px; }
+.controls { margin-top: 24px; }
+.controls .play-button { border-radius: 50%; box-shadow: none; width: 62px; height: 62px; }
+.local-note { background: none; border: 0; padding: 10px 0; color: #a5b9ba; }
+.audio-import { background: #10282e; border: 1px solid #365057; border-radius: 7px; font-size: 13px; }
+.lyrics-column .panel-heading { margin: 0 0 20px; padding: 4px 12px; }
+.lyrics-column .panel-heading h2 { font: 400 22px var(--font-display); }
+.font-button { border: 0; background: #ffffff08; border-radius: 7px; }
+.lyric-list, .spotify-lyrics { height: min(72vh, 750px); padding: 0 12px 35px 0; }
+.lyric, .spotify-lyric { border-radius: 6px; border-left: 3px solid transparent; padding: 15px 20px; margin: 5px 0 13px; opacity: .7; }
+.lyric strong, .spotify-lyric strong { font: 400 clamp(23px, 1.85vw, 31px)/1.3 var(--font-display); letter-spacing: -.025em; }
+.lyric em, .spotify-lyric em { font: italic 400 clamp(17px, 1.25vw, 21px)/1.5 var(--font-display); margin-top: 5px; color: #cbb594; }
+.lyric.active, .spotify-lyric.active { background: linear-gradient(90deg, #1b4144b8, #17323770); box-shadow: none; opacity: 1; }
+.lyric.active strong, .spotify-lyric.active strong { color: #edc790; }
+.lyric-time { display: none; }
+.focus-shortcut { border-radius: 8px; background: #10262b; padding: 12px 16px; }
+.focus-shortcut > span:first-child { font: 400 17px var(--font-display); }
+.proxy-card, .focus-card { border-radius: 10px; box-shadow: none; background: rgb(10 31 38 / 84%); border: 1px solid rgb(167 200 200 / 14%); padding: 22px 19px; }
+.card-head h3, .focus-title h3 { font-family: var(--font-display); font-weight: 400; font-size: 23px; }
+.icon-square, .focus-icon { background: none; border-radius: 0; }
+.status { border-radius: 7px; background: #103c337a; }
+.status.miss { background: #4c382133; }
+.proxy-actions button { background: transparent; border-color: #355057; border-radius: 6px; }
+.playlist-cover { border-radius: 5px; background: #24454a; color: #dec399; }
+.focus-playlist, .limit-row { border-radius: 7px; background: #12303666; }
+.focus-timer > div strong { font-family: var(--font-display); font-size: 36px; }
+.focus-timer .timer-primary { border-radius: 8px; }
+.focus-card .focus-blocking { padding-top: 14px; }
+.focus-blocking select { border-radius: 6px; background: #10262b; }
+.focus-blocking > button { border: 1px solid #36535b; background: transparent; color: #d4e2e0; border-radius: 6px; padding: 9px 12px; font-size: 12px; }
+@media (min-width: 1221px) { .workspace { grid-template-columns: minmax(245px, 1fr) minmax(360px, 1.65fr) minmax(285px, 1fr); gap: 28px; } }
+@media (max-width: 800px) { .sidebar { width: 72px; } .sidebar .brand b { display: none; } .lyrics-column { margin-top: 20px; } }

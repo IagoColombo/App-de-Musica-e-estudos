@@ -7,4 +7,5 @@ import './styles/primitives.css';
 import './styles/atmosphere.css';
 import './styles/navigation.css';
 import './styles/refinement.css';
+import './styles/music-surface.css';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

@@ -1,9 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SpotifyTrack } from './spotify';
-import { Languages, Music2 } from 'lucide-react';
 
 type LyricLine = { at: number | null; original: string; translation?: string };
-type LyricsView = 'both' | 'original' | 'translation';
 type LrcLibResult = { syncedLyrics?: string | null; plainLyrics?: string | null };
 export type SpotifyLookup = { kind: 'miss' | 'error'; durationMs: number; at: string };
 
@@ -37,7 +35,6 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
   const [lines, setLines] = useState<LyricLine[]>([]);
   const [status, setStatus] = useState('Buscando letra…');
   const [translationStatus, setTranslationStatus] = useState('');
-  const [view, setView] = useState<LyricsView>('both');
   const [progressMs, setProgressMs] = useState(track.progressMs);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -114,15 +111,11 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
   }, [activeIndex, track.isPlaying]);
 
   return <div className="spotify-lyrics-wrap">
-    <div className="lyrics-toolbar" role="group" aria-label="Visualização da letra">
-      <button className={view === 'both' ? 'selected' : ''} onClick={() => setView('both')}><Languages size={16}/> Letra + Tradução</button>
-      <button className={view === 'original' ? 'selected' : ''} onClick={() => setView('original')}><Music2 size={16}/> Somente letra</button>
-      <button className={view === 'translation' ? 'selected' : ''} onClick={() => setView('translation')}><Languages size={16}/> Somente tradução</button>
-    </div>
+
     {status && <p className="lyrics-message" role="status">{status}</p>}
     <div className="spotify-lyrics" ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
-      {view !== 'translation' && <strong>{line.original}</strong>}
-      {view !== 'original' && <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>}
+      <strong>{line.original}</strong>
+      <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>
     </div>)}</div>
     {lines.length > 0 && <span className="sr-only">{synchronized ? 'Letra sincronizada com o Spotify.' : 'Esta faixa só tem letra sem tempos.'} {translationStatus}</span>}
   </div>;
