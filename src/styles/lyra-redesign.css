@@ -347,3 +347,16 @@ button:hover:not(:disabled) { border-color: rgb(224 168 102 / 45%); }
 @media (max-width: 1100px) { .library-layout { grid-template-columns: 1fr; } .library-playlist-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 15px; } }
 @media (max-width: 700px) { .library-hero { padding: 22px 20px 0; } .library-hero-mark { display: none; } .library-hero-footer { flex-wrap: wrap; gap: 10px 20px; padding: 10px 0; } .library-playlist-list { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .library-led, .controls .play-button:not(:disabled) { animation: none; } }
+.spotify-remote { display: grid; gap: 12px; margin: 12px 0 24px; padding: 13px 16px; border-left: 3px solid var(--album-accent); background: #132e34b8; }
+.spotify-remote-buttons { display: flex; align-items: center; justify-content: space-around; }
+.spotify-remote button { border: 0; color: #e6f2ee; background: transparent; cursor: pointer; padding: 8px; }
+.spotify-remote button[aria-pressed="true"] { color: var(--album-accent); }
+.spotify-remote button:disabled { opacity: .45; }
+.spotify-remote-play { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--album-accent); color: #092126; }
+.spotify-remote-volume { display: flex; align-items: center; gap: 12px; font-size: 11px; }
+.spotify-remote-volume input { flex: 1; accent-color: var(--album-accent); }
+.spotify-remote small { color: #f6ae9d; }
+.update-banner { position: fixed; z-index: 100; bottom: 20px; right: 24px; display: flex; align-items: center; gap: 16px; max-width: calc(100vw - 48px); padding: 13px 16px; background: #0a252b; border-left: 3px solid #e4a75f; box-shadow: 0 15px 45px #0009; color: #f4eee5; font: 600 12px var(--font-technical); }
+.update-banner button { border: 0; padding: 9px 13px; color: #092027; background: #e4a75f; font: inherit; cursor: pointer; }
+.update-banner button:disabled { opacity: .7; cursor: wait; }
+.update-banner small { color: #ef9d8a; }

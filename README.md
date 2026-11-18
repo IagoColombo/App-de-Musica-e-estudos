@@ -18,16 +18,18 @@ npm run desktop:dev
 npm run desktop:build
 ```
 
-O instalador NSIS será gerado em `src-tauri/target/release/bundle/nsis/`. Feche o LyraFlow antes de compilar: o Windows impede substituir um `.exe` que esteja aberto. Use `npm run desktop:dev` para ver alterações do front-end durante o desenvolvimento; o executável de distribuição só muda após `npm run desktop:build`.
+O instalador NSIS será gerado em `src-tauri/target/release/bundle/nsis/`. Feche o LyraFlow antes de compilar: o Windows impede substituir um `.exe` que esteja aberto. Use `npm run desktop:dev` para ver alterações do front-end durante o desenvolvimento; o executável de distribuição só muda após `npm run desktop:build`. Para gerar um instalador assinado localmente, configure `TAURI_SIGNING_PRIVATE_KEY` com o conteúdo da chave em `.private/lyraflow.key`. Essa pasta é ignorada pelo Git e deve ter uma cópia de segurança privada.
 
-Para gerar apenas o executável, use `npm run desktop:exe`. Ele aparece em `src-tauri/target/release/lyraflow.exe`. Builds publicados de cada commit enviado para `main` estão em [Releases do GitHub](https://github.com/IagoColombo/App-de-Musica-e-estudos/releases); o repositório é privado, então o download requer acesso à conta autorizada. O workflow envia apenas `lyraflow.exe` e o instalador NSIS, nunca os dados locais do usuário.
+Para gerar apenas o executável, use `npm run desktop:exe`. Ele aparece em `src-tauri/target/release/lyraflow.exe`. O código permanece no repositório privado. O fluxo de cada commit em `main` gera uma versão numerada e envia somente `lyraflow.exe`, instalador NSIS, assinatura e `latest.json` para [LyraFlow-Updates](https://github.com/IagoColombo/LyraFlow-Updates). O app verifica esse manifesto ao iniciar e periodicamente; quando há versão nova, mostra **Atualizar agora** para instalar e reiniciar sem baixar o instalador manualmente. Dados locais do usuário não são enviados.
+
+Para habilitar a publicação entre repositórios, configure no repositório privado os segredos `TAURI_SIGNING_PRIVATE_KEY` (conteúdo de `.private/lyraflow.key`) e `LYRA_RELEASE_TOKEN` (token de acesso fino, limitado a **Contents: Read and write** apenas no repositório público `LyraFlow-Updates`). Nunca coloque esses valores no README ou no código. Sem ambos, o fluxo para antes de publicar; o aplicativo não aceita atualizações sem assinatura válida.
 
 ## Conectar Spotify
 
 1. O **Client ID público deste projeto** é `f2b88e25eefc497f886ba7a8ca13c1db`. A URI de redirecionamento cadastrada no [Spotify for Developers](https://developer.spotify.com/dashboard) é `http://127.0.0.1:47831/spotify-callback`. Não é necessário usar o Client Secret e ele não deve ser publicado.
 2. Abra o LyraFlow desktop, informe esse Client ID no painel Spotify da sidebar e clique em **Conectar Spotify**. Autorize o acesso no navegador. O app pede leitura da faixa atual, das playlists e das músicas curtidas, além de permissão para controlar a reprodução no Spotify. Quem já havia conectado uma versão anterior precisa clicar em **Atualizar permissões** uma vez.
 3. O painel consulta a faixa em reprodução a cada 5 segundos. A sessão e o Client ID ficam salvos localmente no perfil do LyraFlow; ao reiniciar, o app renova o acesso automaticamente enquanto a autorização do Spotify for válida. **Desconectar** apaga a sessão local. Os tokens não entram no repositório nem nos builds.
-4. Clique em **Spotify** na sidebar para ver suas playlists e músicas curtidas. Escolha uma faixa para enviá-la ao aplicativo Spotify que estiver ativo no seu dispositivo. O áudio não é reproduzido dentro do LyraFlow.
+4. Clique em **Spotify** na sidebar para ver suas playlists e músicas curtidas. Escolha uma faixa para iniciar a playlist a partir dela no Spotify, ou reproduzir as músicas curtidas carregadas em sequência. Os controles de pausar, avançar, voltar, ordem aleatória e volume aparecem junto à faixa do Spotify. O áudio é reproduzido pelo Spotify.
 
 O controle de reprodução exige Spotify Premium e um dispositivo ativo. No modo de desenvolvimento da API, playlists seguidas podem aparecer sem liberar sua lista de faixas; playlists suas ou colaborativas são acessíveis. Autorizações antigas ou expiradas podem exigir nova conexão. O player local e suas letras continuam independentes.
 

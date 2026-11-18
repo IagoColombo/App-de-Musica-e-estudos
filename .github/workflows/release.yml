@@ -6,13 +6,13 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - name: Baixar código
+      - name: Baixar codigo privado
         shell: pwsh
         working-directory: C:\
         env:
@@ -25,15 +25,45 @@ jobs:
           node-version: '22'
       - run: npm ci
         working-directory: C:\lyraflow-source
-      - run: npm run desktop:build
+      - name: Definir versao do build
+        shell: pwsh
         working-directory: C:\lyraflow-source
-      - name: Publicar executável e instalador
+        run: |
+          $version = "0.1.${{ github.run_number }}"
+          @{ version = $version } | ConvertTo-Json -Compress | Set-Content -Path 'build-version.json' -Encoding utf8
+          "LYRA_VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Compilar e assinar instalador
         shell: pwsh
         working-directory: C:\lyraflow-source
         env:
-          GH_TOKEN: ${{ github.token }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
-          $exe = 'src-tauri/target/release/lyraflow.exe'
-          $installer = Get-ChildItem 'src-tauri/target/release/bundle/nsis' -Filter '*-setup.exe' | Select-Object -First 1 -ExpandProperty FullName
-          if (-not (Test-Path $exe) -or -not $installer) { throw 'Build Windows incompleto.' }
-          gh release create "build-${{ github.sha }}" $exe $installer --title "LyraFlow ${{ github.sha }}" --notes "Build automático do commit ${{ github.sha }}." --prerelease --target "${{ github.sha }}"
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Configure TAURI_SIGNING_PRIVATE_KEY nos secrets do repositorio privado.' }
+          npm exec tauri build -- --config build-version.json
+      - name: Publicar somente binarios no repositorio publico
+        shell: pwsh
+        working-directory: C:\lyraflow-source
+        env:
+          GH_TOKEN: ${{ secrets.LYRA_RELEASE_TOKEN }}
+        run: |
+          if (-not $env:GH_TOKEN) { throw 'Configure LYRA_RELEASE_TOKEN nos secrets do repositorio privado.' }
+          $bundle = 'src-tauri/target/release/bundle/nsis'
+          $installer = Get-ChildItem $bundle -Filter '*-setup.exe' | Select-Object -First 1
+          if (-not $installer) { throw 'Instalador nao encontrado.' }
+          $signature = Get-Item "$($installer.FullName).sig"
+          $exe = Get-Item 'src-tauri/target/release/lyraflow.exe'
+          $tag = "v$env:LYRA_VERSION"
+          $downloadUrl = "https://github.com/IagoColombo/LyraFlow-Updates/releases/download/$tag/$($installer.Name)"
+          $manifest = @{
+            version = $env:LYRA_VERSION
+            notes = "Build do commit ${{ github.sha }}"
+            platforms = @{
+              'windows-x86_64' = @{
+                signature = (Get-Content $signature.FullName -Raw).Trim()
+                url = $downloadUrl
+              }
+            }
+          } | ConvertTo-Json -Depth 5
+          $manifest | Set-Content 'latest.json' -Encoding utf8
+          gh release create $tag $exe.FullName $installer.FullName $signature.FullName 'latest.json' --repo IagoColombo/LyraFlow-Updates --target main --title "LyraFlow $env:LYRA_VERSION" --notes "Build automatico do commit privado ${{ github.sha }}."

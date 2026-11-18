@@ -5,8 +5,16 @@ type LyricLine = { at: number | null; original: string; translation?: string };
 type LrcLibResult = { syncedLyrics?: string | null; plainLyrics?: string | null };
 export type SpotifyLookup = { kind: 'miss' | 'error'; durationMs: number; at: string };
 
-const translationCache = new Map<string, string>();
-export function clearSpotifyTranslationCache() { translationCache.clear(); }
+const CACHE_KEY = 'lyra:spotifyTranslations';
+function savedTranslations(): [string, string][] {
+  try {
+    const saved = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+    return Array.isArray(saved) ? saved.filter(item => Array.isArray(item) && typeof item[0] === 'string' && typeof item[1] === 'string') : [];
+  } catch { return []; }
+}
+const translationCache = new Map<string, string>(savedTranslations());
+let memoryCoolingUntil = 0;
+export function clearSpotifyTranslationCache() { translationCache.clear(); localStorage.removeItem(CACHE_KEY); }
 
 export function parseSyncedLyrics(value: string): LyricLine[] {
   return value.split(/\r?\n/).flatMap(raw => {
@@ -20,14 +28,30 @@ export function parseSyncedLyrics(value: string): LyricLine[] {
 async function translateLine(original: string, signal: AbortSignal): Promise<string> {
   const cached = translationCache.get(original);
   if (cached) return cached;
-  const query = new URLSearchParams({ q: original, langpair: 'en|pt-BR' });
-  const response = await fetch(`https://api.mymemory.translated.net/get?${query}`, { signal });
-  if (!response.ok) throw new Error(`Serviço de tradução indisponível (${response.status}).`);
-  const data = await response.json() as { responseStatus?: number; responseData?: { translatedText?: string } };
-  if (data.responseStatus !== 200 || !data.responseData?.translatedText) throw new Error('Tradução indisponível para esta faixa.');
-  const translation = new DOMParser().parseFromString(data.responseData.translatedText, 'text/html').documentElement.textContent?.trim() || '';
+  let translation = '';
+  if (Date.now() >= memoryCoolingUntil) {
+    try {
+      const query = new URLSearchParams({ q: original, langpair: 'en|pt' });
+      const response = await fetch(`https://api.mymemory.translated.net/get?${query}`, { signal });
+      if (response.status === 429) memoryCoolingUntil = Date.now() + 60 * 60 * 1000;
+      if (response.ok) {
+        const data = await response.json() as { responseStatus?: number; responseData?: { translatedText?: string } };
+        if (data.responseStatus === 200 && data.responseData?.translatedText) translation = data.responseData.translatedText;
+      }
+    } catch (error) { if (signal.aborted) throw error; }
+  }
+  if (!translation) {
+    const query = new URLSearchParams({ client: 'gtx', sl: 'en', tl: 'pt', dt: 't', q: original });
+    const response = await fetch(`https://translate.googleapis.com/translate_a/single?${query}`, { signal });
+    if (!response.ok) throw new Error(`Serviços de tradução indisponíveis (${response.status}).`);
+    const data = await response.json() as Array<Array<[string]>>;
+    translation = data[0]?.map(part => part[0]).join('') || '';
+  }
+  translation = new DOMParser().parseFromString(translation, 'text/html').documentElement.textContent?.trim() || '';
   if (!translation) throw new Error('Tradução indisponível para esta faixa.');
   translationCache.set(original, translation);
+  if (translationCache.size > 400) translationCache.delete(translationCache.keys().next().value!);
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify([...translationCache])); } catch { /* Cache opcional. */ }
   return translation;
 }
 
@@ -85,7 +109,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
         let failures = 0;
         // Limita a quantidade simultânea de consultas e atualiza a tela conforme cada verso chega.
         let cursor = 0;
-        await Promise.all(Array.from({ length: Math.min(3, next.length) }, async () => {
+        await Promise.all(Array.from({ length: Math.min(2, next.length) }, async () => {
           while (cursor < next.length && !controller.signal.aborted) {
             const index = cursor++;
             try {
@@ -96,7 +120,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
             }
           }
         }));
-        if (!controller.signal.aborted) setTranslationStatus(failures ? `Tradução indisponível para ${failures} verso(s).` : 'Tradução automática · revise antes de compartilhar.');
+        if (!controller.signal.aborted) setTranslationStatus(failures ? `Os serviços de tradução limitaram ${failures} verso(s). Tente consultar novamente mais tarde.` : 'Tradução automática · revise antes de compartilhar.');
       })
       .catch(error => { if (!controller.signal.aborted) { setStatus(error instanceof Error ? error.message : 'Falha ao buscar letra.'); onLookup({ kind: 'error', durationMs: Math.round(performance.now() - started), at: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }); } });
     return () => controller.abort();
@@ -113,6 +137,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
   return <div className="spotify-lyrics-wrap">
 
     {status && <p className="lyrics-message" role="status">{status}</p>}
+    {translationStatus && translationStatus !== 'Traduzindo versos…' && <p className="lyrics-message" role="status">{translationStatus}</p>}
     <div className="spotify-lyrics" ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
       <strong>{line.original}</strong>
       <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>

@@ -63,7 +63,7 @@ export function SpotifyLibrary({ session, onSessionChange, onOpenConnection, onB
     if (!session) return;
     setPlayingId(track.id); setNotice('');
     try {
-      onSessionChange(await playSpotifyTrack(session, track));
+      onSessionChange(await playSpotifyTrack(session, track, selected || undefined, tracks));
       setNotice(`Solicitei a reprodução de “${track.title}” no Spotify.`);
       window.dispatchEvent(new Event('lyra:spotify-refresh'));
     } catch (cause) { setNotice(cause instanceof Error ? cause.message : String(cause)); }

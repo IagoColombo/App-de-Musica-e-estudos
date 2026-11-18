@@ -8,8 +8,8 @@ export type SpotifyPlaylist = { id: string; name: string; image?: string; url: s
 export type SpotifyLibraryTrack = { id: string; uri: string; title: string; artist: string; album: string; image?: string; url: string; durationMs: number };
 export type SpotifyPage<T> = { items: T[]; total: number; next: boolean };
 const SESSION_KEY = 'lyra:spotifySession';
-const REQUESTED_SCOPES = 'user-read-currently-playing playlist-read-private playlist-read-collaborative user-library-read user-modify-playback-state';
-export const LIBRARY_SCOPES = ['playlist-read-private', 'playlist-read-collaborative', 'user-library-read', 'user-modify-playback-state'];
+const REQUESTED_SCOPES = 'user-read-currently-playing user-read-playback-state playlist-read-private playlist-read-collaborative user-library-read user-modify-playback-state';
+export const LIBRARY_SCOPES = ['user-read-playback-state', 'playlist-read-private', 'playlist-read-collaborative', 'user-library-read', 'user-modify-playback-state'];
 
 export function loadSpotifySession(): SpotifySession | null {
   try {
@@ -128,10 +128,18 @@ export async function getSpotifyPlaylistTracks(session: SpotifySession, playlist
   })) } };
 }
 
-export async function playSpotifyTrack(session: SpotifySession, track: SpotifyLibraryTrack): Promise<SpotifySession> {
-  const { session: activeSession, response } = await spotifyRequest(session, '/me/player/play', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ uris: [track.uri] }) });
+export async function spotifyPlayerCommand(session: SpotifySession, path: string, method: 'PUT' | 'POST', body?: object): Promise<SpotifySession> {
+  const { session: activeSession, response } = await spotifyRequest(session, `/me/player/${path}`, { method, headers: body ? { 'Content-Type': 'application/json' } : undefined, body: body ? JSON.stringify(body) : undefined });
   if (response.status === 404) throw new Error('Abra o Spotify em um dispositivo e inicie uma faixa antes de tocar pelo LyraFlow.');
   if (response.status === 403) throw new Error('A reprodução remota exige Spotify Premium e a permissão de controlar o player.');
-  if (!response.ok) throw new Error(`O Spotify não iniciou a faixa (${response.status}).`);
+  if (!response.ok) throw new Error(`O Spotify recusou o comando (${response.status}).`);
   return activeSession;
+}
+
+export async function playSpotifyTrack(session: SpotifySession, track: SpotifyLibraryTrack, playlist?: SpotifyPlaylist, visibleTracks: SpotifyLibraryTrack[] = []): Promise<SpotifySession> {
+  const context = playlist && playlist.id !== '__liked__';
+  const selectedIndex = visibleTracks.findIndex(item => item.id === track.id);
+  return spotifyPlayerCommand(session, 'play', 'PUT', context
+    ? { context_uri: `spotify:playlist:${playlist.id}`, offset: { uri: track.uri } }
+    : { uris: selectedIndex >= 0 ? visibleTracks.slice(selectedIndex, selectedIndex + 100).map(item => item.uri) : [track.uri] });
 }

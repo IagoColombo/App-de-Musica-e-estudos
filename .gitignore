@@ -7,3 +7,5 @@ src-tauri/gen/schemas
 .env
 .env.*
 src-tauri/target*
+.private/
+build-version.json
