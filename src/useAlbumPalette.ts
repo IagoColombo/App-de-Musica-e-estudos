@@ -6,7 +6,7 @@ function fromHue(hue: number, saturation: number): AlbumPalette {
   const safeHue = Math.round(hue);
   const safeSaturation = Math.round(Math.min(72, Math.max(38, saturation)));
   return {
-    accent: `hsl(${safeHue} ${safeSaturation}% 66%)`,
+    accent: `hsl(${safeHue} ${safeSaturation}% 76%)`,
     glow: `hsl(${safeHue} ${safeSaturation}% 34% / 34%)`,
     deep: `hsl(${safeHue} ${Math.round(safeSaturation * .55)}% 14%)`,
   };

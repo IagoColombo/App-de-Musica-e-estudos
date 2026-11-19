@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { clearSpotifySession, connectSpotify, getSpotifyTrack, hasSpotifyLibraryAccess, loadSpotifySession, saveSpotifySession, type SpotifySession, type SpotifyTrack } from './spotify';
 
 export function SpotifyPanel({ onConnectionChange, onSessionChange, onOpenLibrary }: { onConnectionChange?: (connected: boolean) => void; onSessionChange?: (session: SpotifySession | null) => void; onOpenLibrary?: () => void }) {
-  const [clientId, setClientId] = useState(() => localStorage.getItem('lyra:spotifyClientId') || '');
+  const [clientId, setClientId] = useState(() => localStorage.getItem('lyra:spotifyClientId') || 'f2b88e25eefc497f886ba7a8ca13c1db');
   const [connected, setConnected] = useState(() => Boolean(loadSpotifySession()));
   const [busy, setBusy] = useState(false);
   const [track, setTrack] = useState<SpotifyTrack | null>(null);

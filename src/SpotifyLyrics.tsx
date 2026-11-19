@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { SpotifyTrack } from './spotify';
+import { useLyricsAnimation } from './useLyraMotion';
 
 type LyricLine = { at: number | null; original: string; translation?: string };
 type LrcLibResult = { syncedLyrics?: string | null; plainLyrics?: string | null };
@@ -76,7 +77,10 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
     setLines([]);
     setStatus('Buscando letra…');
     setTranslationStatus('');
-    const params = new URLSearchParams({ track_name: track.title, artist_name: track.artist.split(',')[0], album_name: track.album, duration: String(Math.round(track.durationMs / 1000)) });
+    const clean = (value: string) => value.replace(/\[[^\]]*\]|\([^)]*(?:official|video|audio|lyrics?|stream|visuali[sz]er|album)[^)]*\)/gi, ' ').replace(/\b(?:official\s+)?(?:music\s+)?(?:video|audio|lyrics?|full\s+album\s+stream|album\s+stream|visuali[sz]er|hd|4k)\b/gi, ' ').replace(/\s+/g, ' ').replace(/^[\s"'“”‘’\-–—:]+|[\s"'“”‘’\-–—:]+$/g, '').trim();
+    const cleanedTitle = clean(track.title);
+    const cleanedArtist = clean(track.artist.split(',')[0]);
+    const params = new URLSearchParams({ track_name: cleanedTitle || track.title, artist_name: cleanedArtist || track.artist.split(',')[0], album_name: track.album, duration: String(Math.round(track.durationMs / 1000)) });
     fetch(`https://lrclib.net/api/get?${params}`, { signal: controller.signal })
       .then(async response => {
         if (!response.ok && response.status !== 404) throw new Error('Serviço de letras indisponível.');
@@ -84,17 +88,23 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
         if (best?.syncedLyrics) return best;
         // A busca exata pode escolher um registro sem tempos. Procura uma versão
         // sincronizada com o mesmo título, artista e duração antes de usar a letra plana.
-        const search = new URLSearchParams({ track_name: track.title, artist_name: track.artist.split(',')[0] });
+        const search = new URLSearchParams({ track_name: cleanedTitle || track.title, artist_name: cleanedArtist || track.artist.split(',')[0] });
         try {
           const alternativesResponse = await fetch(`https://lrclib.net/api/search?${search}`, { signal: controller.signal });
           if (alternativesResponse.ok) {
             const alternatives = await alternativesResponse.json() as Array<LrcLibResult & { trackName: string; artistName: string; duration: number }>;
             const normalized = (value: string) => value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
-            const match = alternatives.find(item => item.syncedLyrics && normalized(item.trackName) === normalized(track.title) && normalized(item.artistName) === normalized(track.artist.split(',')[0]) && Math.abs(item.duration - track.durationMs / 1000) <= 2);
+            const titleScore = (name: string) => normalized(name) === normalized(cleanedTitle || track.title) ? 2 : normalized(name).includes(normalized(cleanedTitle || track.title)) || normalized(cleanedTitle || track.title).includes(normalized(name)) ? 1 : 0;
+            const artistScore = (name: string) => normalized(name) === normalized(cleanedArtist || track.artist.split(',')[0]) ? 2 : normalized(name).includes(normalized(cleanedArtist || track.artist.split(',')[0])) || normalized(cleanedArtist || track.artist.split(',')[0]).includes(normalized(name)) ? 1 : 0;
+            const match = alternatives.filter(item => item.syncedLyrics && Math.abs(item.duration - track.durationMs / 1000) <= 8)
+              .map(item => ({ item, score: titleScore(item.trackName) * 3 + artistScore(item.artistName) * 2 - Math.min(2, Math.abs(item.duration - track.durationMs / 1000) / 4) }))
+              .filter(result => result.score >= 4).sort((a, b) => b.score - a.score)[0]?.item;
             if (match) return match;
           }
         } catch (error) { if (controller.signal.aborted) throw error; }
-        if (!best) throw new Error('Letra não encontrada para esta faixa.');
+        if (!best) throw new Error(/full\s+album|album\s+stream|full\s+mix|continuous\s+mix/i.test(track.title)
+          ? 'Este vídeo contém um álbum ou mix inteiro. Escolha uma faixa individual no YouTube para sincronizar a letra.'
+          : 'Letra não encontrada para esta faixa.');
         return best;
       })
       .then(async data => {
@@ -128,11 +138,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
 
   const synchronized = lines.some(line => line.at !== null);
   const activeIndex = synchronized ? lines.reduce((index, line, i) => line.at !== null && progressMs >= line.at ? i : index, -1) : -1;
-  useEffect(() => {
-    if (activeIndex < 0 || !track.isPlaying) return;
-    const active = listRef.current?.querySelector<HTMLElement>('.spotify-lyric.active');
-    active?.scrollIntoView({ block: 'center', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-  }, [activeIndex, track.isPlaying]);
+  useLyricsAnimation(listRef, activeIndex, track.id, track.isPlaying);
 
   return <div className="spotify-lyrics-wrap">
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { invoke } from '@tauri-apps/api/core';
+import { LockKeyhole, LockKeyholeOpen } from 'lucide-react';
 
 type Mode = 'windows' | 'extension';
 let pendingUpdate: Promise<void> = Promise.resolve();
@@ -32,7 +33,7 @@ export function FocusBlocking({ active, domains }: { active: boolean; domains: s
   }, [active, mode, domains.join('|'), desktop, retry]);
 
   return <div className="focus-blocking">
-    <label>Bloqueio de sites<select value={mode} onChange={event => setMode(event.target.value as Mode)}><option value="windows">Windows · permissão ao iniciar</option><option value="extension">Extensão Chrome/Edge</option></select></label>
+    <span className="blocking-label">Bloqueio de sites</span><div className="blocking-method" role="group" aria-label="Método de bloqueio"><button aria-pressed={mode === 'windows'} onClick={() => setMode('windows')}>Windows</button><button aria-pressed={mode === 'extension'} onClick={() => setMode('extension')}>Extensão</button></div><div className="blocked-sites">{domains.map(domain => <span key={domain}>{active ? <LockKeyhole size={14} aria-label="Sessão ativa"/> : <LockKeyholeOpen size={14} aria-label="Sessão inativa"/>}{domain}</span>)}</div>
     <p role="status">{status}</p>
     {desktop && <button onClick={() => setRetry(value => value + 1)}>Verificar e reaplicar</button>}
     {mode === 'windows' && desktop && <small>Ao iniciar ou encerrar o bloqueio, confirme a permissão do Windows. A janela do LyraFlow permanece aberta.</small>}

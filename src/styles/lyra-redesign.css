@@ -1,7 +1,21 @@
 /* LyraFlow's complete visual system. Album color belongs to the music canvas only. */
 :root {
-  --font-body: 'Segoe UI Variable Text', 'Segoe UI', Arial, sans-serif;
-  --font-display: 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --accent-fallback: #d9a15b;
+  --canvas-ink: #090b0c;
+  --canvas-surface: #15191b;
+  --canvas-text: #f4f0e9;
+  --canvas-muted: #b8b7b1;
+  --radius-sharp: 0px;
+  --radius-soft: 8px;
+  --radius-display: 24px;
+  --shadow-offset: 12px 16px 0 rgb(0 0 0 / 32%);
+  --motion-fast: 180ms;
+  --motion-standard: 420ms;
+  --motion-slow: 1200ms;
+  --system-amber: #edb36c;
+  --canvas-light-pool: 80%;
+  --canvas-grain-opacity: .15;
+  --ease-out: cubic-bezier(.16, 1, .3, 1);
   --color-bg: #071519;
   --color-surface: #10262b;
   --color-surface-raised: #153038;
@@ -59,13 +73,27 @@ button:hover:not(:disabled) { border-color: rgb(224 168 102 / 45%); }
 .window-controls .ui-icon-button { border-radius: 9px; }
 .search-results, .search-link-result, .notification-popover { background: #10292f; border-radius: 13px; }
 
-/* Music canvas: album color is translucent over a stable teal base. */
+/* Album color stays inside the music canvas. The sidebar and header remain stable. */
 .content {
+  --accent: var(--album-accent, var(--accent-fallback));
+  --bg-tint: var(--album-deep, #221910);
   max-width: 1810px; min-height: calc(100vh - 79px); padding: 31px clamp(22px, 2.4vw, 47px) 65px;
   background:
-    radial-gradient(ellipse 55% 46% at 26% 17%, var(--album-glow), transparent 75%),
-    radial-gradient(ellipse 47% 56% at 79% 68%, color-mix(in srgb, var(--album-deep) 62%, transparent), transparent 78%),
-    linear-gradient(135deg, #0c2329, #0b1e24 53%, #0b2026);
+    radial-gradient(ellipse 64% 60% at 22% 12%, color-mix(in srgb, var(--bg-tint) 78%, transparent), transparent 76%),
+    radial-gradient(ellipse 55% 68% at 88% 76%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 80%),
+    var(--canvas-ink);
+  color: var(--canvas-text);
+  position: relative;
+  isolation: isolate;
+}
+.content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--canvas-grain-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.72' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.24'/%3E%3C/svg%3E");
 }
 .page-heading { display: flex; align-items: end; margin: 0 0 25px; }
 .page-heading .eyebrow { color: #e2ae72; font-size: 11px; letter-spacing: .18em; }
@@ -221,9 +249,12 @@ button:hover:not(:disabled) { border-color: rgb(224 168 102 / 45%); }
 @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 
 /* Broadcast desk: deliberate edges, instrument markings, and album-driven light. */
-:root { --font-technical: 'Bahnschrift', 'Arial Narrow', 'Segoe UI', sans-serif; }
+:root { --font-technical: var(--font-body); }
+.lyric strong, .spotify-lyric strong { font-family: var(--font-lyrics); font-style: normal; font-weight: 400; }
+.lyric em, .spotify-lyric em { font-family: var(--font-translation); font-style: italic; font-weight: 400; }
+.song-title h2, .spotify-main-player h2, .page-heading h1, .brand, .card-head h3, .focus-title h3, .collection h2 { font-family: var(--font-display); font-weight: 800; font-optical-sizing: auto; }
 .content { position: relative; isolation: isolate; overflow: hidden; }
-.content::before { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; background-image: repeating-linear-gradient(0deg, transparent 0 49px, #bfd4d414 50px), repeating-linear-gradient(90deg, transparent 0 49px, #bfd4d411 50px); mask-image: linear-gradient(110deg, transparent 12%, #0005 57%, transparent 100%); }
+.content::before { mask-image: none; }
 .main-area .topbar { box-shadow: 0 8px 35px #020b0f77; }
 .brand { font-family: var(--font-display); }
 .sidebar .nav-item.selected { border-radius: 3px 15px 3px 3px; box-shadow: inset 4px 0 #e6b16b, 0 8px 18px #0003; }
@@ -355,8 +386,115 @@ button:hover:not(:disabled) { border-color: rgb(224 168 102 / 45%); }
 .spotify-remote-play { display: grid; place-items: center; width: 46px; height: 46px; border-radius: 50%; background: var(--album-accent); color: #092126; }
 .spotify-remote-volume { display: flex; align-items: center; gap: 12px; font-size: 11px; }
 .spotify-remote-volume input { flex: 1; accent-color: var(--album-accent); }
+
+/* Concert poster: a full-width stage, oversized lyrics, and quiet instruments. */
+.content { max-width: none; width: 100%; padding: var(--space-8); background: radial-gradient(ellipse 58% 55% at 26% 19%, color-mix(in srgb, var(--bg-tint) 76%, transparent), transparent 78%), radial-gradient(ellipse 56% 50% at 85% 78%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 76%), var(--canvas-ink); }
+.workspace { grid-template-columns: minmax(0,4fr) minmax(0,5fr) minmax(300px,3fr); gap: var(--space-8); align-items: stretch; }
+.page-heading { margin-bottom: var(--space-8); padding: 0 0 var(--space-4); border-bottom: 0; }
+.page-heading h1 { font-size: clamp(40px, 3.4vw, 64px); }
+.page-heading .eyebrow::before, .lyrics-column .panel-heading::before, .player-column .artwork::before, .proxy-card::before, .focus-card::before, .lyric.active::after, .spotify-lyric.active::after { content: none; }
+.player-column .artwork, .spotify-main-player img { border: 0; border-radius: var(--radius-sharp); box-shadow: var(--shadow-offset); }
+.spotify-main-player img { max-height: min(47vh, 560px); object-fit: cover; }
+.spotify-main-player h2, .song-title h2 { font: 400 clamp(48px, 5vw, 88px)/.98 var(--font-display); letter-spacing: -.075em; overflow-wrap: anywhere; text-transform: none; }
+.spotify-main-player .eyebrow, .song-title .eyebrow { font-size: 13px; letter-spacing: .04em; }
+.spotify-main-player p:not(.eyebrow), .song-title p:not(.eyebrow) { font-size: 15px; }
+.controls .play-button, .spotify-remote-play { box-shadow: none; }
+.controls .play-button:not(:disabled) { animation: none; }
+.spotify-remote { order: 2; margin: var(--space-4) 0; padding: 0; background: none; border: 0; }
+.spotify-open-bar { margin-top: var(--space-6); }
+.lyrics-column { display: flex; flex-direction: column; min-height: 0; }
+.lyrics-column .panel-heading { padding: 0 0 var(--space-4); margin: 0; border-bottom: 2px solid var(--accent); }
+.lyrics-column .panel-heading h2 { font: 400 clamp(25px, 2vw, 36px) var(--font-display); letter-spacing: -.04em; text-transform: none; }
+.lyric-list, .spotify-lyrics { height: calc(100vh - 215px); min-height: 460px; padding: var(--space-8) var(--space-2) var(--space-16) 0; mask-image: linear-gradient(to bottom, transparent, black 7%, black 89%, transparent); }
+.lyric, .spotify-lyric { padding: var(--space-4) var(--space-6); margin-bottom: var(--space-8); border: 0; border-left: 4px solid transparent; background: none; opacity: .42; }
+.lyric strong, .spotify-lyric strong { font-size: clamp(22px, 1.7vw, 30px); }
+.lyric em, .spotify-lyric em { color: var(--canvas-muted); font-size: clamp(16px, 1.2vw, 20px); }
+.lyric.active, .spotify-lyric.active { border: 0; border-left: 5px solid var(--accent); border-radius: 0; background: color-mix(in srgb, var(--accent) 9%, transparent); box-shadow: none; opacity: 1; }
+.lyric.active strong, .spotify-lyric.active strong { font-size: clamp(36px, 3.1vw, 54px); line-height: 1.1; color: var(--canvas-text); }
+.lyric.active em, .spotify-lyric.active em { color: var(--accent); font-size: clamp(20px, 1.7vw, 27px); }
+.right-column { display: flex; flex-direction: column; gap: var(--space-6); }
+.proxy-card, .focus-card { padding: var(--space-6); border: 0; border-radius: var(--radius-sharp); box-shadow: none; background: var(--canvas-surface); }
+.proxy-card { background: #171b1c; }
+.focus-card { flex: 1; background: #20201d; }
+.card-head, .focus-top { padding: 0 0 var(--space-6); border-bottom: 0; }
+.card-head h3, .focus-title h3 { font: 400 clamp(22px, 2vw, 32px) var(--font-display); letter-spacing: -.03em; text-transform: none; }
+.icon-square, .focus-icon { border: 0; color: var(--accent); }
+.status { display: flex; align-items: center; min-height: 100px; margin: var(--space-6) 0; padding: var(--space-4); border: 0; border-radius: var(--radius-sharp); background: #26352f; }
+.status.hit { background: #173a2e; }.status.miss { background: #49321d; }.status.error { background: #492322; }
+.status strong { font: 600 20px var(--font-display); }.status small { font-size: 13px; }.latency { font: 600 15px var(--font-body); }
+.proxy-metadata > div { font-size: 13px; }.proxy-metadata > div strong { overflow-wrap: anywhere; }
+.proxy-actions button:first-child { border: 0; border-radius: 0; background: #38332c; font-size: 13px; }
+.focus-mode-switch { display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: var(--space-6); padding: var(--space-3) 0; border: 0; border-bottom: 1px solid #ffffff21; border-radius: 0; background: none; color: var(--canvas-text); font-size: 14px; text-align: left; }
+.focus-mode-switch .switch { margin-left: var(--space-4); }
+.focus-playlist { margin: 0 0 var(--space-6); border: 0; border-radius: var(--radius-soft); background: #ffffff0b; }
+.focus-timer { gap: var(--space-3); }
+.focus-timer > div strong { font: 400 clamp(56px, 5vw, 88px)/1 var(--font-display); letter-spacing: -.06em; }
+.focus-timer .timer-primary { width: 52px; height: 52px; border-radius: 50%; background: var(--accent); }
+.focus-timer .timer-stop { width: 52px; height: 52px; }
+.focus-options { display: grid; gap: var(--space-3); font-size: 13px; }
+.focus-presets { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-1); }
+.focus-presets button { padding: var(--space-2) var(--space-1); background: #ffffff12; border: 0; border-radius: 0; color: var(--canvas-text); font-size: 13px; }
+.focus-presets button.selected { background: var(--accent); color: #171411; }
+.focus-options label { display: flex; align-items: center; gap: var(--space-2); }
+.focus-options input { width: 64px; }
+.blocking-label { display: block; margin-bottom: var(--space-3); font-size: 13px; }
+.blocking-method { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-1); padding: var(--space-1); background: #ffffff0d; }
+.blocking-method button { border: 0; border-radius: 0; padding: var(--space-2); color: var(--canvas-text); background: transparent; }
+.blocking-method button[aria-pressed="true"] { background: var(--accent); color: #171411; }
+.blocked-sites { display: flex; flex-wrap: wrap; gap: var(--space-2); margin: var(--space-3) 0; }
+.blocked-sites span { padding: var(--space-1) var(--space-2); color: var(--canvas-muted); background: #ffffff12; font-size: 13px; }
+.focus-card:has(.focus-mode-switch[aria-checked="true"]) { background: #28231c; }
+.focus-card:has(.focus-mode-switch[aria-checked="true"]) .focus-timer > div strong { color: var(--accent); }
+.app:has(.focus-mode-switch[aria-checked="true"]) .content { --canvas-ink: #080706; }
+.content :is(button, a, input):focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+@media (max-width: 1450px) { .workspace { grid-template-columns: minmax(0,4fr) minmax(0,5fr); } .right-column { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; } .lyric-list, .spotify-lyrics { height: 68vh; } }
+@media (max-width: 1050px) { .content { padding: var(--space-6); } .workspace { grid-template-columns: 1fr; } .right-column { grid-column: auto; grid-template-columns: 1fr; } .lyric-list, .spotify-lyrics { height: 60vh; } }
+@media (prefers-reduced-motion: reduce) { .content *, .content *::before, .content *::after { animation: none !important; transition-duration: 0ms !important; } }
 .spotify-remote small { color: #f6ae9d; }
 .update-banner { position: fixed; z-index: 100; bottom: 20px; right: 24px; display: flex; align-items: center; gap: 16px; max-width: calc(100vw - 48px); padding: 13px 16px; background: #0a252b; border-left: 3px solid #e4a75f; box-shadow: 0 15px 45px #0009; color: #f4eee5; font: 600 12px var(--font-technical); }
 .update-banner button { border: 0; padding: 9px 13px; color: #092027; background: #e4a75f; font: inherit; cursor: pointer; }
+
+.content {
+  background:
+    radial-gradient(ellipse 62% 58% at 22% 16%, color-mix(in srgb, var(--bg-tint) var(--canvas-light-pool), transparent), transparent 78%),
+    radial-gradient(ellipse 58% 54% at 85% 78%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 76%),
+    var(--canvas-ink);
+}
+
+.brand, .page-heading h1, .song-title h2, .spotify-main-player h2,
+.library-hero h1, .spotify-library-empty h1, .collection h2,
+.library-section-head h2, .modal-head h2, .lyrics-column .panel-heading h2,
+.card-head h3, .focus-title h3 {
+  font-family: var(--font-display);
+  font-weight: 750;
+  letter-spacing: -.02em;
+  word-spacing: normal;
+}
+
+.lyric strong, .spotify-lyric strong {
+  font-family: var(--font-lyrics);
+  font-weight: 550;
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.lyric em, .spotify-lyric em {
+  font-family: var(--font-translation);
+  letter-spacing: normal;
+  word-spacing: normal;
+}
+
+.lyric:not(.active), .spotify-lyric:not(.active) { opacity: .65; }
+
+.player-progress > div, .spotify-progress, .volume > span, .spotify-remote-volume > span,
+.lyric-time, .latency, .events time, .playlist-index, .track-index,
+.track-duration, .library-track-count, .focus-timer > div strong {
+  font-family: var(--font-data);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: normal;
+}
+
+.page-heading .eyebrow { color: var(--system-amber); }
+button { transition-timing-function: var(--ease-out); }
 .update-banner button:disabled { opacity: .7; cursor: wait; }
 .update-banner small { color: #ef9d8a; }

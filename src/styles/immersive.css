@@ -1,0 +1,40 @@
+.main-area { background: radial-gradient(ellipse 65% 55% at 42% 20%, var(--album-glow), transparent 75%), linear-gradient(145deg, #0b1c20, var(--album-deep) 58%, #071115); }
+.main-area::before { opacity: .25; filter: blur(68px) saturate(1.25); }
+.main-area .content { position: relative; z-index: 0; }
+.main-area .content::before { content: ''; position: absolute; z-index: -1; inset: 0; pointer-events: none; background: radial-gradient(ellipse 45% 35% at 78% 67%, var(--album-glow), transparent 90%); }
+.proxy-card, .focus-card, .spotify-account, .collection { background: color-mix(in srgb, var(--album-deep) 64%, transparent); border: 1px solid color-mix(in srgb, var(--album-accent) 23%, transparent); box-shadow: 0 20px 48px #0006, inset 0 1px #ffffff16, 0 0 24px var(--album-glow); backdrop-filter: blur(18px); }
+.workspace { min-width: 0; }
+.workspace > * { min-width: 0; }
+.right-column { min-width: 0; }
+.proxy-card, .focus-card { max-width: 100%; }
+.collection-list button, .library-track, .search-results button, .nav-item, .controls button, .youtube-transport button { transition: transform .16s ease-out, background-color .22s ease-out, box-shadow .22s ease-out; }
+.collection-list button:hover, .library-track:hover, .search-results button:hover { transform: translateX(4px); }
+.controls button:hover:not(:disabled), .youtube-transport button:hover:not(:disabled) { transform: translateY(-2px) scale(1.04); box-shadow: 0 7px 20px var(--album-glow); }
+.controls button:active:not(:disabled), .youtube-transport button:active:not(:disabled) { transform: translateY(1px) scale(.97); }
+.lyric:hover, .spotify-lyric:hover { background: color-mix(in srgb, var(--album-accent) 9%, transparent); }
+.player-progress input, .spotify-progress-track span, .youtube-transport input { transition: filter .25s ease-out; }
+.player-progress input:hover, .youtube-transport input:hover { filter: brightness(1.3); }
+.workspace:has(.youtube-main-player) .player-column { display: none; }
+.youtube-main-player { min-width: 0; padding: 14px; background: color-mix(in srgb, var(--album-deep) 68%, #061318); border: 1px solid color-mix(in srgb, var(--album-accent) 30%, transparent); box-shadow: 0 22px 50px #0007, 0 0 30px var(--album-glow); backdrop-filter: blur(18px); }
+.youtube-search-results { margin-bottom: 22px; padding: 15px; border: 1px solid #ffffff30; background: #102328e8; }
+.youtube-search-results h2 { font: 600 14px var(--font-technical); }
+.youtube-search-results > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.youtube-search-results button { display: flex; gap: 10px; min-width: 0; padding: 8px; border: 1px solid #ffffff1c; background: #ffffff0a; color: inherit; text-align: left; cursor: pointer; }
+.youtube-search-results button:hover { background: #ffffff1c; }
+.youtube-search-results img { width: 72px; aspect-ratio: 16/9; object-fit: cover; }
+.youtube-search-results strong, .youtube-search-results small { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 250px; }
+.youtube-search-results small { opacity: .7; margin-top: 5px; }
+.youtube-heading { display: flex; justify-content: space-between; align-items: center; color: var(--album-accent); font: 600 11px var(--font-technical); letter-spacing: .1em; margin-bottom: 12px; }
+.youtube-heading button, .youtube-transport button { color: var(--album-accent); background: #ffffff12; border: 1px solid #ffffff24; padding: 8px; cursor: pointer; }
+.youtube-video { width: 100%; aspect-ratio: 16 / 9; min-height: 200px; background: #060a0c; }
+.youtube-video iframe { display: block; width: 100%; height: 100%; }
+.youtube-main-player h2 { overflow-wrap: anywhere; font: 700 clamp(22px, 2.2vw, 37px) var(--font-display); }
+.youtube-main-player p { color: #e8bfa0; }
+.youtube-main-player a { color: var(--album-accent); }
+.youtube-transport { display: flex; align-items: center; gap: 10px; min-width: 0; font: 12px var(--font-technical); }
+.youtube-transport input { min-width: 0; flex: 1; accent-color: var(--album-accent); }
+.youtube-transport .youtube-volume { flex: 0 1 65px; }
+@media (max-width: 1450px) { .workspace:has(.youtube-main-player) { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .workspace:has(.youtube-main-player) .right-column { grid-column: 1 / -1; } }
+@media (max-width: 1050px) { .workspace:has(.youtube-main-player) { grid-template-columns: minmax(0, 1fr); } .workspace:has(.youtube-main-player) .right-column { grid-column: auto; } }
+@media (max-width: 600px) { .youtube-transport { flex-wrap: wrap; } .youtube-transport input:not(.youtube-volume) { flex-basis: 45%; } .youtube-video { min-height: 200px; } }
+@media (prefers-reduced-motion: reduce) { .collection-list button, .library-track, .search-results button, .nav-item, .controls button, .youtube-transport button, .player-progress input, .youtube-transport input { transition: none; } .collection-list button:hover, .library-track:hover, .search-results button:hover, .controls button:hover:not(:disabled), .youtube-transport button:hover:not(:disabled) { transform: none; } }

@@ -1,6 +1,10 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
+import '@fontsource-variable/bricolage-grotesque/standard.css';
+import '@fontsource-variable/newsreader/standard-italic.css';
+import '@fontsource-variable/hanken-grotesk';
+import '@fontsource-variable/jetbrains-mono';
 import './style.css';
 import './styles/tokens.css';
 import './styles/primitives.css';
@@ -8,4 +12,6 @@ import './styles/atmosphere.css';
 import './styles/navigation.css';
 import './styles/refinement.css';
 import './styles/lyra-redesign.css';
+import './styles/sound-studio.css';
+import './styles/immersive.css';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);
