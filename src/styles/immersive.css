@@ -18,7 +18,8 @@
 .youtube-main-player { min-width: 0; padding: 14px; background: color-mix(in srgb, var(--album-deep) 68%, #061318); border: 1px solid color-mix(in srgb, var(--album-accent) 30%, transparent); box-shadow: 0 22px 50px #0007, 0 0 30px var(--album-glow); backdrop-filter: blur(18px); }
 .youtube-search-results { margin-bottom: 22px; padding: 15px; border: 1px solid #ffffff30; background: #102328e8; }
 .youtube-search-results h2 { font: 600 14px var(--font-technical); }
-.youtube-search-results > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+.youtube-search-results .youtube-results-rail { display: flex; gap: 8px; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; scroll-snap-type: x proximity; scrollbar-width: thin; padding-bottom: 5px; }
+.youtube-search-results .youtube-results-rail > button { flex: 0 0 270px; scroll-snap-align: start; }
 .youtube-search-results button { display: flex; gap: 10px; min-width: 0; padding: 8px; border: 1px solid #ffffff1c; background: #ffffff0a; color: inherit; text-align: left; cursor: pointer; }
 .youtube-search-results button:hover { background: #ffffff1c; }
 .youtube-search-results img { width: 72px; aspect-ratio: 16/9; object-fit: cover; }

@@ -14,6 +14,6 @@ export function YouTubeSearch({ query, onSelect }: { query: string; onSelect: (r
     }, 450);
     return () => { window.clearTimeout(timer); controller.abort(); };
   }, [query]);
-  if (!import.meta.env.VITE_YOUTUBE_SEARCH_URL || query.trim().length < 2 || /https?:\/\//i.test(query)) return null;
-  return <section className="youtube-search-results" aria-label="Resultados do YouTube"><h2>YouTube {loading ? '· buscando…' : ''}</h2>{error && <p role="status">{error}</p>}<div>{items.map(item => <button key={item.id} onClick={() => onSelect(item)}><img src={item.thumbnail} alt=""/><span><strong>{item.title}</strong><small>{item.channel}</small></span></button>)}</div></section>;
+  if (query.trim().length < 2 || /https?:\/\//i.test(query)) return null;
+  return <section className="youtube-search-results" aria-label="Resultados do YouTube"><h2>YouTube {loading ? '· buscando…' : ''}</h2>{error && <p role="status">{error}</p>}<div className="youtube-results-rail" tabIndex={0} aria-label="Resultados do YouTube, role horizontalmente">{items.map(item => <button key={item.id} onClick={() => onSelect(item)}><img src={item.thumbnail} alt=""/><span><strong>{item.title}</strong><small>{item.channel}</small></span></button>)}</div></section>;
 }
