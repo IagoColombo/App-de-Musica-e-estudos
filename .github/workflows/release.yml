@@ -40,6 +40,8 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: |
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Configure TAURI_SIGNING_PRIVATE_KEY nos secrets do repositorio privado.' }
+          # GitHub secrets can preserve a trailing newline copied from the key file.
+          $env:TAURI_SIGNING_PRIVATE_KEY = $env:TAURI_SIGNING_PRIVATE_KEY.Trim()
           npm exec tauri build -- --config build-version.json
       - name: Guardar instaladores na execução
         uses: actions/upload-artifact@v4
