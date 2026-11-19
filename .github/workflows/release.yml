@@ -41,6 +41,15 @@ jobs:
         run: |
           if (-not $env:TAURI_SIGNING_PRIVATE_KEY) { throw 'Configure TAURI_SIGNING_PRIVATE_KEY nos secrets do repositorio privado.' }
           npm exec tauri build -- --config build-version.json
+      - name: Guardar instaladores na execução
+        uses: actions/upload-artifact@v4
+        with:
+          name: lyraflow-windows-${{ github.run_number }}
+          if-no-files-found: error
+          path: |
+            C:\lyraflow-source\src-tauri\target\release\lyraflow.exe
+            C:\lyraflow-source\src-tauri\target\release\bundle\nsis\*-setup.exe
+            C:\lyraflow-source\src-tauri\target\release\bundle\nsis\*-setup.exe.sig
       - name: Publicar somente binarios no repositorio publico
         shell: pwsh
         working-directory: C:\lyraflow-source
@@ -66,4 +75,4 @@ jobs:
             }
           } | ConvertTo-Json -Depth 5
           $manifest | Set-Content 'latest.json' -Encoding utf8
-          gh release create $tag $exe.FullName $installer.FullName $signature.FullName 'latest.json' --repo IagoColombo/LyraFlow-Updates --target main --title "LyraFlow $env:LYRA_VERSION" --notes "Build automatico do commit privado ${{ github.sha }}."
+          gh release create $tag $exe.FullName $installer.FullName $signature.FullName 'latest.json' --repo IagoColombo/LyraFlow-Updates --target main --title "LyraFlow $env:LYRA_VERSION" --notes "Build automatico do commit privado ${{ github.sha }}." --latest
