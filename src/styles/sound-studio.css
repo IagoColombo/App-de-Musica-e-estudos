@@ -87,7 +87,7 @@
 @media (min-width: 1200px) {
   .workspace { grid-template-columns: minmax(0, 4fr) minmax(0, 5fr) minmax(280px, 3fr); }
   .right-column { display: flex; grid-column: auto; }
-  .right-column { max-height: calc(100dvh - 280px); overflow-y: auto; padding-right: var(--space-2); }
+  .right-column { padding-right: var(--space-2); }
   .right-column > section { flex: none; }
 }
 

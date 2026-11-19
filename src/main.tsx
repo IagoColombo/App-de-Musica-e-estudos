@@ -14,4 +14,5 @@ import './styles/refinement.css';
 import './styles/lyra-redesign.css';
 import './styles/sound-studio.css';
 import './styles/immersive.css';
+import './styles/sticky-search.css';
 createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>);

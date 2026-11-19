@@ -13,6 +13,7 @@ import type { SpotifySession, SpotifyTrack } from './spotify';
 import { useAlbumPalette } from './useAlbumPalette';
 import { WindowControls } from './WindowControls';
 import { UpdateBanner } from './UpdateBanner';
+import { useStuckHeader } from './useStuckHeader';
 import { useAlbumTransition, useChannelRail, useFocusModeTimeline, useLyricsAnimation, usePageEntrance } from './useLyraMotion';
 import { YouTubePlayer } from './YouTubePlayer';
 import { YouTubeSearch } from './YouTubeSearchPanel';
@@ -77,6 +78,7 @@ function App() {
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
   const audioRef = useRef<HTMLAudioElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const { sentinelRef: topbarSentinel, stuck: topbarStuck } = useStuckHeader();
   const hasAudio = Boolean(audioUrls[song.id]);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const duration = hasAudio && audioDuration ? audioDuration : song.duration;
@@ -240,7 +242,8 @@ function App() {
       <div className="sidebar-bottom"><button className="nav-item" onClick={() => setShowRules(true)}><Settings2 size={19}/> Configurações</button></div>
     </aside>
     <div className="main-area" style={{ '--album-accent': albumPalette.accent, '--album-glow': albumPalette.glow, '--album-deep': albumPalette.deep, '--current-album-art': youtubeSource ? `url(https://i.ytimg.com/vi/${youtubeSource.id}/hqdefault.jpg)` : spotifyTrack?.image ? `url(${JSON.stringify(spotifyTrack.image)})` : 'none' } as React.CSSProperties}>
-      <header className="topbar" data-tauri-drag-region><div className="history-buttons"><button aria-label="Voltar" disabled={navigation.index === 0} onClick={() => moveNavigation(-1)}><ArrowLeft size={18}/></button><button aria-label="Avançar" disabled={navigation.index >= navigation.pages.length - 1} onClick={() => moveNavigation(1)}><ArrowRight size={18}/></button></div>
+      <div className="topbar-sentinel" ref={topbarSentinel} aria-hidden="true"/>
+      <header className="topbar" data-stuck={topbarStuck} data-tauri-drag-region><div className="history-buttons"><button aria-label="Voltar" disabled={navigation.index === 0} onClick={() => moveNavigation(-1)}><ArrowLeft size={18}/></button><button aria-label="Avançar" disabled={navigation.index >= navigation.pages.length - 1} onClick={() => moveNavigation(1)}><ArrowRight size={18}/></button></div>
         <div className="search-wrap"><label className="search"><Search size={20}/><input value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key !== 'Enter') return; if (queryLooksLikeLink) { detectMusicLink(query); setQuery(''); } else if (shownSongs[0]) { changeSong(songs.indexOf(shownSongs[0])); navigatePage('Início'); } }} placeholder="Buscar música, artista ou colar um link..."/></label>{query && <div className="search-results">{queryLooksLikeLink ? <button onClick={() => { detectMusicLink(query); setQuery(''); }}><Search size={16}/> Identificar link do Spotify ou YouTube</button> : shownSongs.length ? shownSongs.map((s) => <button key={s.id} onClick={() => { changeSong(songs.indexOf(s)); navigatePage('Início'); }}><Music2 size={16}/><span>{s.title}<small>{s.artist}</small></span></button>) : <p>Nenhuma faixa local encontrada.</p>}</div>}{(recognizedSource?.provider === 'Spotify' || linkError) && <div className="search-link-result">{recognizedSource?.provider === 'Spotify' ? <><div><strong>Spotify identificado</strong><button onClick={() => setRecognizedSource(null)} aria-label="Fechar link"><X size={15}/></button></div><iframe title="Player Spotify" src={recognizedSource.embedUrl} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen loading="lazy"/><a href={recognizedSource.url} target="_blank" rel="noopener noreferrer">Abrir no Spotify ↗</a></> : <p role="alert">{linkError}</p>}</div>}</div>
         <WindowControls/></header>
       <div className="content">

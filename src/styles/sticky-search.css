@@ -1,0 +1,61 @@
+/*
+ * Sticky search bar (Spotify-style).
+ *
+ * The document itself scrolls: .app / .main-area have no overflow or fixed height,
+ * and .main-area stretches to the full page height inside the flex .app, so
+ * `position: sticky` on the top bar pins it to the viewport. The bar is a sibling
+ * of .content (which has overflow: hidden), so that rule does not affect it.
+ *
+ * Layers (existing): topbar 12 < search/link popovers 20 (inside the topbar's own
+ * stacking context) < modal-backdrop 30 < update-banner 100. No new z-index values.
+ */
+:root { --topbar-height: 79px; } /* mirrors `.main-area .topbar` height in lyra-redesign.css */
+
+/* Anchors and focus scrolling must not land under the pinned bar. */
+html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
+
+/* Zero-footprint marker watched by useStuckHeader. */
+.topbar-sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
+
+.main-area > .topbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  transition: background-color .2s ease-out, box-shadow .2s ease-out;
+}
+
+/* Once pinned over content, let it read as a glass layer instead of a solid block. */
+.main-area > .topbar[data-stuck='true'] {
+  background: rgb(10 26 31 / 94%);
+  box-shadow: 0 10px 30px rgb(2 11 15 / 55%);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .main-area > .topbar[data-stuck='true'] {
+    background: rgb(10 26 31 / 78%);
+    -webkit-backdrop-filter: blur(16px) saturate(1.2);
+    backdrop-filter: blur(16px) saturate(1.2);
+  }
+}
+
+/* Result list must stay reachable on short viewports now that the bar is always on screen. */
+.main-area > .topbar .search-results {
+  max-height: calc(100dvh - var(--topbar-height) - var(--space-4));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .main-area > .topbar { transition: none; }
+}
+/* Sidebar fixa: acompanha a rolagem como a barra de pesquisa */
+.app > .sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  height: 100dvh;
+}
+/* Rolagem interna só em janelas baixas. Não em telas estreitas, onde o painel
+   do Spotify abre por cima e seria cortado. */
+@media (min-width: 801px) {
+  .app > .sidebar { overflow-y: auto; scrollbar-width: thin; }
+}
