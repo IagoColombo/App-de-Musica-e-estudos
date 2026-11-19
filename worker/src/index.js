@@ -26,11 +26,12 @@ export default {
     const query = (url.searchParams.get('q') || '').trim().slice(0, 120);
     if (query.length < 2) return Response.json({ items: [] }, { headers });
     const api = new URL('https://www.googleapis.com/youtube/v3/search');
-    api.search = new URLSearchParams({ part: 'snippet', type: 'video', maxResults: '8', q: query, key: env.YOUTUBE_API_KEY }).toString();
+    api.search = new URLSearchParams({ part: 'snippet', type: 'video', videoCategoryId: '10', maxResults: '30', q: query, key: env.YOUTUBE_API_KEY }).toString();
     const response = await fetch(api);
     const body = await response.json();
     if (!response.ok) return Response.json({ error: 'YouTube search unavailable' }, { status: response.status, headers });
-    const items = (body.items || []).flatMap(item => item.id?.videoId ? [{ id: item.id.videoId, title: item.snippet?.title || '', channel: item.snippet?.channelTitle || '', thumbnail: item.snippet?.thumbnails?.medium?.url || '' }] : []);
+    const rank = item => { const title = item.snippet?.title || ''; const channel = item.snippet?.channelTitle || ''; return (/official (music )?video|official audio|\btopic\b/i.test(`${title} ${channel}`) ? 10 : 0) - (/full album|album stream|reaction|cover|review|lyrics? video/i.test(title) ? 15 : 0); };
+    const items = (body.items || []).sort((a, b) => rank(b) - rank(a)).flatMap(item => item.id?.videoId ? [{ id: item.id.videoId, title: item.snippet?.title || '', channel: item.snippet?.channelTitle || '', thumbnail: item.snippet?.thumbnails?.medium?.url || '' }] : []);
     return Response.json({ items }, { headers: { ...headers, 'Cache-Control': 'public, max-age=120' } });
   },
 };
