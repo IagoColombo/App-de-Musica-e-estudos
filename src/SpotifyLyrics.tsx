@@ -47,17 +47,21 @@ async function translateLine(original: string, signal: AbortSignal): Promise<str
   return translation;
 }
 
-export function usePlaybackProgress(track: SpotifyTrack) {
+export function usePlaybackProgress(track: SpotifyTrack, intervalMs = 250) {
   const [progressMs, setProgressMs] = useState(track.progressMs);
 
 
   useEffect(() => {
-    setProgressMs(track.progressMs);
-    if (!track.isPlaying) return;
     const started = track.sampledAt ?? performance.now();
-    const timer = window.setInterval(() => setProgressMs(Math.min(track.durationMs, track.progressMs + performance.now() - started)), 250);
+    const update = () => {
+      const elapsed = track.isPlaying ? Math.max(0, performance.now() - started) : 0;
+      setProgressMs(Math.min(track.durationMs, track.progressMs + elapsed));
+    };
+    update();
+    if (!track.isPlaying) return;
+    const timer = window.setInterval(update, intervalMs);
     return () => window.clearInterval(timer);
-  }, [track.id, track.progressMs, track.durationMs, track.isPlaying, track.sampledAt]);
+  }, [track.id, track.progressMs, track.durationMs, track.isPlaying, track.sampledAt, intervalMs]);
 
   return progressMs;
 }
@@ -66,7 +70,8 @@ export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: {
   const [lines, setLines] = useState<LyricLine[]>([]);
   const [status, setStatus] = useState('Buscando letra…');
   const [translationStatus, setTranslationStatus] = useState('');
-  const progressMs = usePlaybackProgress(track);
+  const progressMs = usePlaybackProgress(track, karaoke ? 32 : 100);
+  const durationSeconds = Math.round(track.durationMs / 1000);
   const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -78,7 +83,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: {
     const clean = (value: string) => value.replace(/\[[^\]]*\]|\([^)]*(?:official|video|audio|lyrics?|stream|visuali[sz]er|album)[^)]*\)/gi, ' ').replace(/\b(?:official\s+)?(?:music\s+)?(?:video|audio|lyrics?|full\s+album\s+stream|album\s+stream|visuali[sz]er|hd|4k)\b/gi, ' ').replace(/\s+/g, ' ').replace(/^[\s"'“”‘’\-–—:]+|[\s"'“”‘’\-–—:]+$/g, '').trim();
     const cleanedTitle = clean(track.title);
     const cleanedArtist = clean(track.artist.split(',')[0]);
-    const params = new URLSearchParams({ track_name: cleanedTitle || track.title, artist_name: cleanedArtist || track.artist.split(',')[0], album_name: track.album, duration: String(Math.round(track.durationMs / 1000)) });
+    const params = new URLSearchParams({ track_name: cleanedTitle || track.title, artist_name: cleanedArtist || track.artist.split(',')[0], album_name: track.album, duration: String(durationSeconds) });
     fetch(`https://lrclib.net/api/get?${params}`, { signal: controller.signal })
       .then(async response => {
         if (!response.ok && response.status !== 404) throw new Error('Serviço de letras indisponível.');
@@ -94,8 +99,8 @@ export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: {
             const normalized = (value: string) => value.toLocaleLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
             const titleScore = (name: string) => normalized(name) === normalized(cleanedTitle || track.title) ? 2 : normalized(name).includes(normalized(cleanedTitle || track.title)) || normalized(cleanedTitle || track.title).includes(normalized(name)) ? 1 : 0;
             const artistScore = (name: string) => normalized(name) === normalized(cleanedArtist || track.artist.split(',')[0]) ? 2 : normalized(name).includes(normalized(cleanedArtist || track.artist.split(',')[0])) || normalized(cleanedArtist || track.artist.split(',')[0]).includes(normalized(name)) ? 1 : 0;
-            const match = alternatives.filter(item => item.syncedLyrics && Math.abs(item.duration - track.durationMs / 1000) <= 8)
-              .map(item => ({ item, score: titleScore(item.trackName) * 3 + artistScore(item.artistName) * 2 - Math.min(2, Math.abs(item.duration - track.durationMs / 1000) / 4) }))
+            const match = alternatives.filter(item => item.syncedLyrics && Math.abs(item.duration - durationSeconds) <= 8)
+              .map(item => ({ item, score: titleScore(item.trackName) * 3 + artistScore(item.artistName) * 2 - Math.min(2, Math.abs(item.duration - durationSeconds) / 4) }))
               .filter(result => result.score >= 4).sort((a, b) => b.score - a.score)[0]?.item;
             if (match) return match;
           }
@@ -132,19 +137,18 @@ export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: {
       })
       .catch(error => { if (!controller.signal.aborted) { setStatus(error instanceof Error ? error.message : 'Falha ao buscar letra.'); onLookup({ kind: 'error', durationMs: Math.round(performance.now() - started), at: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) }); } });
     return () => controller.abort();
-  }, [track.id, track.title, track.artist, track.album, track.durationMs, refreshKey, onLookup]);
+  }, [track.id, track.title, track.artist, track.album, durationSeconds, refreshKey, onLookup]);
 
   const activeEnd = (index: number) => lines[index + 1]?.at ?? track.durationMs;
   const synchronized = lines.some(line => line.at !== null);
   const activeIndex = synchronized ? lines.reduce((index, line, i) => line.at !== null && progressMs >= line.at ? i : index, -1) : -1;
-  useLyricsAnimation(listRef, activeIndex, track.id, track.isPlaying, karaoke, large);
+  useLyricsAnimation(listRef, activeIndex, track.id, large);
 
   return <div className="spotify-lyrics-wrap">
 
-    {karaoke && lines.length > 0 && <p className="lyrics-message">{synchronized ? (lines[activeIndex]?.words?.every(word => word.at < activeEnd(activeIndex)) ? "Marcação por palavra" : "Preenchimento estimado por verso") : "Sem marcação de tempo · letra tradicional"}</p>}
     {status && <p className="lyrics-message" role="status">{status}</p>}
     {translationStatus && translationStatus !== 'Traduzindo versos…' && <p className="lyrics-message" role="status">{translationStatus}</p>}
-    <div className="spotify-lyrics" data-follow-playback={karaoke && synchronized || undefined} ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
+    <div className="spotify-lyrics" ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
       {karaoke && index === activeIndex ? <KaraokeText line={line} position={progressMs} end={activeEnd(index)}/> : <strong>{line.original}</strong>}
       <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>
     </div>)}</div>

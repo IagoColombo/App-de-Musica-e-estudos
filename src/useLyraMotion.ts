@@ -18,7 +18,7 @@ export function usePageEntrance(scope: RefObject<HTMLElement | null>, page: stri
   }, { scope, dependencies: [page, trackId], revertOnUpdate: true });
 }
 
-export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, playing: boolean, karaoke: boolean, large: boolean) {
+export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, large: boolean, viewKey = "") {
   const follow = useRef<(() => void) | null>(null);
   useGSAP(() => {
     const container = list.current;
@@ -27,7 +27,7 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
     let tween: gsap.core.Tween | undefined;
     const align = () => {
       const active = container.querySelector<HTMLElement>('[aria-current="true"]');
-      if (!active || resume !== undefined || container.hasAttribute('data-follow-playback')) return;
+      if (!active || resume !== undefined) return;
       const topInset = parseFloat(getComputedStyle(container).paddingTop);
       const target = container.scrollTop + active.getBoundingClientRect().top
         - container.getBoundingClientRect().top - container.clientTop - topInset;
@@ -37,7 +37,6 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
         duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : .35, ease: motion.ease });
     };
     const suspend = () => {
-      if (container.hasAttribute('data-follow-playback')) return;
       tween?.kill();
       window.clearTimeout(resume);
       resume = window.setTimeout(() => { resume = undefined; align(); }, 4000);
@@ -51,28 +50,8 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
       window.clearTimeout(resume);
       inputs.forEach(type => container.removeEventListener(type, suspend));
     };
-  }, { dependencies: [trackId, karaoke, large], revertOnUpdate: true });
-  useGSAP(() => {
-    const container = list.current;
-    const active = container?.querySelector<HTMLElement>('[aria-current="true"]');
-    if (!container || !active) return;
-    if (!container.hasAttribute('data-follow-playback')) {
-      follow.current?.();
-      return;
-    }
-    container.scrollTop = 0;
-    const cinematic = container.closest('[data-visual-mode="cinematic"], [data-visual-mode="immersive"]');
-    const media = gsap.matchMedia();
-    if (cinematic) media.add('(prefers-reduced-motion: no-preference)', () => {
-      const text = active.querySelector('strong');
-      if (!text) return;
-      const split = text.querySelector('.sung-text') ? null : SplitText.create(text, { type: 'words' });
-      const timeline = gsap.timeline();
-      timeline.from(split?.words ?? text.querySelectorAll('.sung-text'), { y: 16, opacity: 0, scale: .96, stagger: .035, duration: .45, ease: 'power3.out' });
-      return () => { timeline.kill(); split?.revert(); };
-    });
-    return () => media.revert();
-  }, { dependencies: [activeIndex, trackId, playing, karaoke, large], revertOnUpdate: true });
+  }, { dependencies: [trackId, large, viewKey], revertOnUpdate: true });
+  useGSAP(() => { follow.current?.(); }, { dependencies: [activeIndex, trackId, large, viewKey] });
 }
 
 export function useButtonMotion(scope: RefObject<HTMLElement | null>) {
