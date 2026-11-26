@@ -69,7 +69,14 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
 
 /* Result list must stay reachable on short viewports now that the bar is always on screen. */
 .main-area > .topbar .search-results {
-  max-height: calc(100dvh - var(--topbar-height) - var(--space-4));
+  max-height: min(560px, calc(100dvh - var(--topbar-height) - 24px));
+  margin-top: 8px;
+  padding: 6px;
+  border-radius: 16px;
+  background: #10242b;
+  box-shadow: 0 18px 48px #0007;
+  scrollbar-width: thin;
+  scrollbar-color: #4f6970 transparent;
   overflow-y: auto;
   overscroll-behavior: contain;
 }
@@ -113,7 +120,25 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
   margin: 0;
   padding: 4px 12px;
 }
-.youtube-result-list button { align-items: center; }
-.youtube-result-list button span { min-width: 0; }
-.youtube-result-list button img { flex: 0 0 72px; border-radius: 4px; }
-.topbar .youtube-result-list :is(strong, small) { max-width: none; }
+.youtube-result-list { list-style: none; margin: 4px 0 0; padding: 0; }
+.topbar .search-results .youtube-result-list button {
+  display: grid;
+  grid-template-columns: clamp(54px, 14vw, 76px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
+}
+.topbar .search-results .youtube-result-list button:is(:hover, :focus-visible) {
+  background: #ffffff10;
+  border-color: #ffffff22;
+}
+.topbar .youtube-result-list button:focus-visible { outline-offset: -2px; }
+.youtube-result-list button img { width: 100%; border-radius: 7px; background: #182f36; }
+.topbar .youtube-result-copy :is(strong, small) { max-width: none; }
+.topbar .youtube-result-copy strong { font-size: .875rem; }
+.topbar .youtube-result-copy small { color: #a2bbbd; opacity: 1; }
+.youtube-result-play { color: #a2bbbd; }
