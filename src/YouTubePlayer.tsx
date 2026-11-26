@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Maximize2, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
 import type { MusicSource } from './sourceRecognition';
 
@@ -47,6 +47,8 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
+  const volumeControlsId = useId();
+  const [volumeOpen, setVolumeOpen] = useState(false);
   const [volume, setVolume] = useState(72);
   const [muted, setMuted] = useState(false);
   const [preview, setPreview] = useState<number | null>(null);
@@ -168,9 +170,12 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
       {preview !== null && <span className="youtube-seek-preview" aria-hidden="true">{time(preview)}</span>}
       </div><span>{time(duration)}</span></div>
       <button type="button" className="youtube-play" disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button>
-      <details className="youtube-volume-menu">
-      <summary><Volume2 size={17} aria-hidden="true"/> Volume <span>{muted ? 0 : volume}%</span></summary>
-      <div className="youtube-volume-controls"><button type="button" disabled={!ready} aria-label={muted || volume === 0 ? 'Restaurar volume do YouTube' : 'Silenciar YouTube'} onClick={() => {
+      <div className="youtube-volume-menu" data-open={volumeOpen || undefined}>
+      <button type="button" className="youtube-volume-toggle" aria-expanded={volumeOpen}
+        aria-controls={volumeControlsId} onClick={() => setVolumeOpen(open => !open)}>
+        <Volume2 size={17} aria-hidden="true"/> Volume <span>{muted ? 0 : volume}%</span>
+      </button>
+      <div id={volumeControlsId} className="youtube-volume-controls" hidden={!volumeOpen}><button type="button" disabled={!ready} aria-label={muted || volume === 0 ? 'Restaurar volume do YouTube' : 'Silenciar YouTube'} onClick={() => {
       const current = player.current;
       if (!current) return;
       if (current.isMuted() || current.getVolume() === 0) {
@@ -189,6 +194,6 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
       if (next > 0) current.unMute();
       current.setVolume(next);
     }}/>
-    </div></details></div>}
+    </div></div></div>}
   </section>;
 }
