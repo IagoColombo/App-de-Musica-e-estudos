@@ -88,3 +88,18 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
   cursor: pointer;
 }
 .topbar .search .search-clear:hover { background: #ffffff20; }
+
+.topbar .search-results .youtube-search-results {
+  margin: 0;
+  padding: 8px 0 0;
+  border: 0;
+  background: transparent;
+}
+.topbar .search-results .youtube-search-results h2 {
+  margin: 0;
+  padding: 4px 12px;
+}
+.youtube-result-list button { align-items: center; }
+.youtube-result-list button span { min-width: 0; }
+.youtube-result-list button img { flex: 0 0 72px; border-radius: 4px; }
+.topbar .youtube-result-list :is(strong, small) { max-width: none; }
