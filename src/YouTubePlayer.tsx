@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
+import { Maximize2, Pause, Play, Volume2, VolumeX, X } from 'lucide-react';
 import type { MusicSource } from './sourceRecognition';
 
 type Player = {
@@ -40,7 +40,7 @@ function loadAPI(): Promise<YouTubeAPI> {
   return apiPromise;
 }
 
-export function YouTubePlayer({ source, active, onClose, onPlayback }: { source: MusicSource; active: boolean; onClose: () => void; onPlayback: (state: { videoId: string; title: string; artist: string; positionMs: number; durationMs: number; playing: boolean }) => void }) {
+export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, onPlayback }: { source: MusicSource; minimized: boolean; hidden: boolean; onExpand: () => void; onClose: () => void; onPlayback: (state: { videoId: string; title: string; artist: string; positionMs: number; durationMs: number; playing: boolean }) => void }) {
   const mount = useRef<HTMLDivElement>(null);
   const player = useRef<Player | null>(null);
   const [ready, setReady] = useState(false);
@@ -105,9 +105,6 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
     return () => { cancelled = true; player.current?.destroy(); player.current = null; mount.current?.replaceChildren(); };
   }, [source.id]);
   useEffect(() => {
-    if (!active && ready) player.current?.pauseVideo();
-  }, [active, ready]);
-  useEffect(() => {
     if (!ready) return;
     const timer = window.setInterval(() => {
       const current = player.current;
@@ -134,8 +131,14 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
   }, [ready, error, offline, source.id]);
   const time = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
   const status = offline ? 'Sem conexão' : error ? 'Indisponível' : !ready ? 'Carregando' : ({ 0: 'Encerrado', 1: 'Reproduzindo', 2: 'Pausado', 3: 'Carregando vídeo' }[state] ?? 'Pronto para tocar');
-  return <div className="youtube-main-player">
-    <div className="youtube-heading"><span role="status">YouTube · {status}</span><button onClick={onClose} aria-label="Fechar player do YouTube"><X size={17}/></button></div>
+  return <section className="youtube-main-player" data-minimized={minimized || undefined} hidden={hidden} aria-label={minimized ? "Miniplayer do YouTube" : "Player do YouTube"}>
+    <div className="youtube-heading">
+      <span role="status">YouTube · {status}</span>
+      <div className="youtube-window-actions">
+        {minimized && <button type="button" onClick={onExpand} aria-label="Expandir player do YouTube" title="Expandir player"><Maximize2 size={15}/></button>}
+        <button type="button" onClick={onClose} aria-label="Fechar player do YouTube" title="Fechar player"><X size={17}/></button>
+      </div>
+    </div>
     <div className="youtube-video" ref={mount} aria-label="Player de vídeo do YouTube"/>
     <h2>{title || "Vídeo do YouTube"}</h2>
     {artist && <p className="youtube-artist">{artist}</p>}
@@ -181,5 +184,5 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
       if (next > 0) current.unMute();
       current.setVolume(next);
     }}/></div></div>}
-  </div>;
+  </section>;
 }
