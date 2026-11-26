@@ -113,8 +113,7 @@ export function useFocusModeTimeline(scope: RefObject<HTMLElement | null>, enabl
     const mm = gsap.matchMedia();
     mm.add('(prefers-reduced-motion: no-preference)', () => {
       const tl = gsap.timeline();
-      tl.to('.focus-card', { scale: enabled ? 1.025 : 1, duration: motion.standard, ease: motion.ease }, 0)
-        .to('.proxy-card', { scale: enabled ? .96 : 1, opacity: enabled ? .95 : 1, duration: motion.standard }, 0)
+      tl.to('.proxy-card', { opacity: enabled ? .95 : 1, duration: motion.standard }, 0)
         .to('.player-column, .lyrics-column', { scale: enabled ? .985 : 1, opacity: enabled ? .95 : 1, duration: motion.standard }, 0);
     });
     return () => mm.revert();
