@@ -415,3 +415,24 @@
 }
 .player-column[data-audio-dock] .spotify-remote { clear: both; }
 .player-column[data-audio-dock] .spotify-open-bar { margin-bottom: 0; }
+
+
+/* Match the full player’s control order and alignment to the Spotify player. */
+.youtube-main-player:not([data-minimized]) .youtube-transport {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  gap: 12px;
+}
+.youtube-main-player:not([data-minimized]) .youtube-play {
+  justify-self: center;
+  width: 52px;
+  height: 52px;
+}
+.youtube-main-player:not([data-minimized]) .youtube-volume-controls {
+  grid-column: 1;
+  max-width: none;
+}
+.youtube-main-player .youtube-volume-controls button { flex-shrink: 0; }
+.youtube-volume-value { min-width: 4ch; text-align: end; font-variant-numeric: tabular-nums; }
+.youtube-main-player[data-minimized] .youtube-play { grid-area: 1 / 1; }
+.youtube-main-player[data-minimized] .youtube-volume-value { display: none; }

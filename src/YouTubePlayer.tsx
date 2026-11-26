@@ -146,7 +146,8 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
       <p role="alert">{offline ? "Confira sua conexão com a internet." : error}</p>
       <a href={source.url} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>
     </div>}
-    {!error && !offline && <div className="youtube-transport"><button disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button><div className="youtube-timeline"><span>{time(position)}</span><div className="youtube-scrubber">
+    {!error && !offline && <div className="youtube-transport">
+      <div className="youtube-timeline"><span>{time(position)}</span><div className="youtube-scrubber">
       <input aria-label="Posição no YouTube" aria-valuetext={time(position)} type="range" min="0" max={Math.max(.1, duration)} step=".1"
         value={Math.min(position, duration)} disabled={!ready || !duration}
         onPointerMove={event => {
@@ -165,7 +166,9 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
           setPosition(target);
         }}/>
       {preview !== null && <span className="youtube-seek-preview" aria-hidden="true">{time(preview)}</span>}
-      </div><span>{time(duration)}</span></div><div className="youtube-volume-controls"><button type="button" disabled={!ready} aria-label={muted || volume === 0 ? 'Restaurar volume do YouTube' : 'Silenciar YouTube'} onClick={() => {
+      </div><span>{time(duration)}</span></div>
+      <button type="button" className="youtube-play" disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button>
+      <div className="youtube-volume-controls"><button type="button" disabled={!ready} aria-label={muted || volume === 0 ? 'Restaurar volume do YouTube' : 'Silenciar YouTube'} onClick={() => {
       const current = player.current;
       if (!current) return;
       if (current.isMuted() || current.getVolume() === 0) {
@@ -183,6 +186,8 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
       if (current.getVolume() > 0) previousVolume.current = current.getVolume();
       if (next > 0) current.unMute();
       current.setVolume(next);
-    }}/></div></div>}
+    }}/>
+    <span className="youtube-volume-value" aria-hidden="true">{muted ? 0 : volume}%</span>
+    </div></div>}
   </section>;
 }
