@@ -202,3 +202,14 @@
 }
 .focus-card .focus-timer .focus-transport button { width: 36px; height: 36px; }
 .focus-card .focus-timer .timer-stop { border-radius: 9px; }
+
+.lyrics-column :is(.lyric-list, .spotify-lyrics):not([data-follow-playback]):has(> [aria-current="true"]) {
+  mask-image: linear-gradient(to bottom, black 89%, transparent);
+}
+
+/* Allow even the last active verse to reach the top of the scrollport. */
+.lyrics-column :is(.lyric-list, .spotify-lyrics):not([data-follow-playback]):has(> [aria-current="true"])::after {
+  content: "";
+  display: block;
+  height: 100%;
+}
