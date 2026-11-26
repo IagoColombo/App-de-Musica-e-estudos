@@ -1,7 +1,7 @@
 import { KaraokeDemo } from './CinematicKaraoke';
 import { KaraokeText } from './Karaoke';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, ArrowRight, ChevronDown, Clock3, Disc3, Heart, Home, Music2, Pause, Play, Repeat2, Search, Settings2, Shuffle, SkipBack, SkipForward, Volume2, X } from 'lucide-react';
+import { Maximize2, ArrowLeft, ArrowRight, ChevronDown, Clock3, Disc3, Heart, Home, Music2, Pause, Play, Repeat2, Search, Settings2, Shuffle, SkipBack, SkipForward, Volume2, X } from 'lucide-react';
 import { formatTime, type Song } from './data';
 import { lyricsProxy, type ProxyEvent } from './lyricsService';
 import { recognizeMusicLink, type MusicSource } from './sourceRecognition';
@@ -97,6 +97,10 @@ function App() {
   const [karaoke, setKaraoke] = useState(() => localStorage.getItem("lyra:karaoke") === "true");
   const [large, setLarge] = useState(false);
   useEffect(() => { localStorage.setItem("lyra:karaoke", String(karaoke)); }, [karaoke]);
+  const miniSource = youtubeSource && youtubePlayback.playing ? 'youtube' : spotifyTrack?.isPlaying ? 'spotify' : playing && hasAudio ? 'local'
+    : youtubeSource ? 'youtube' : spotifyTrack ? 'spotify' : hasAudio ? 'local' : null;
+  const dockedSource = activeNav === 'Início' ? null : miniSource;
+  const audioDock = dockedSource === 'spotify' || dockedSource === 'local' ? dockedSource : undefined;
   const lyricList = useRef<HTMLDivElement>(null);
   const current = lyrics.reduce((index, line, i) => position >= line.at ? i : index, -1);
   useLyricsAnimation(lyricList, current, song.id, large, activeNav + Boolean(youtubeSource || spotifyTrack));
@@ -267,11 +271,17 @@ function App() {
           <SpotifyPanel onConnectionChange={setSpotifyConnected} onSessionChange={setSpotifySession} onOpenLibrary={() => { setShowSpotifyPanel(false); navigatePage('Spotify'); }}/>
         </section>
         {activeNav === 'Spotify' && <SpotifyLibrary session={spotifySession} onSessionChange={setSpotifySession} activeTrackId={spotifyTrack?.id} onOpenConnection={() => { setShowSpotifyPanel(true); requestAnimationFrame(() => document.querySelector('.spotify-account')?.scrollIntoView({ block: 'nearest' })); }} onBack={() => navigatePage('Início')}/>}
-        <div className="home-view" hidden={activeNav !== 'Início'}>
+        <div className="home-view" data-inactive={activeNav !== 'Início' || undefined}>
         <section className="page-heading intro"><div><p className="eyebrow accent-text">MÚSICA EM FOCO</p><h1>Deixe a música falar.</h1></div><span className="source-pill"><span className="live-dot"/> {youtubeSource ? 'YouTube' : spotifyTrack ? 'Spotify' : 'Biblioteca local'} <ChevronDown size={14}/></span></section>
         <div className="workspace">
-          {youtubeSource && <YouTubePlayer key={youtubeSource.id} source={youtubeSource} active={activeNav === 'Início'} onClose={() => setRecognizedSource(null)} onPlayback={setYoutubePlayback}/>}
-          <section className="player-column intro">{spotifyTrack && <div className="spotify-main-player">{spotifyTrack.image && <img src={spotifyTrack.image} alt={`Capa de ${spotifyTrack.album}`}/>}<p className="eyebrow">SPOTIFY · {spotifyTrack.isPlaying ? 'TOCANDO AGORA' : 'PAUSADA'}</p><h2 key={spotifyTrack.id}>{spotifyTrack.title}</h2><p>{spotifyTrack.artist} · {spotifyTrack.album}</p><SpotifyControls session={spotifySession} track={spotifyTrack} onSessionChange={setSpotifySession}/><a className="spotify-open-bar" href={spotifyTrack.url} target="_blank" rel="noopener noreferrer"><Disc3 size={19}/> Reproduzindo no Spotify <span aria-hidden="true">↗</span></a></div>}{hasAudio && <><div className={`artwork art-${song.id}`}><div className="art-halo"/><div className="art-sun"/><div className="art-hill one"/><div className="art-hill two"/><div className="art-grain"/><div className="art-label"><span>LYRAFLOW SESSIONS</span><strong>{song.album}</strong></div></div>
+          {youtubeSource && <YouTubePlayer key={youtubeSource.id} source={youtubeSource} minimized={activeNav !== 'Início'} hidden={Boolean(audioDock)} onExpand={() => navigatePage('Início')} onClose={() => setRecognizedSource(null)} onPlayback={setYoutubePlayback}/>}
+          <section className="player-column intro" data-audio-dock={audioDock}
+            aria-label={audioDock === 'spotify' ? 'Miniplayer do Spotify' : audioDock === 'local' ? 'Miniplayer de áudio local' : undefined}>
+            {audioDock && <div className="audio-dock-heading">
+              <span>{audioDock === 'spotify' ? 'Spotify' : 'Áudio local'}</span>
+              <button type="button" onClick={() => navigatePage('Início')} aria-label="Expandir miniplayer" title="Expandir player"><Maximize2 size={15}/></button>
+            </div>}
+            {spotifyTrack && <div className="spotify-main-player">{spotifyTrack.image && <img src={spotifyTrack.image} alt={`Capa de ${spotifyTrack.album}`}/>}<p className="eyebrow">SPOTIFY · {spotifyTrack.isPlaying ? 'TOCANDO AGORA' : 'PAUSADA'}</p><h2 key={spotifyTrack.id}>{spotifyTrack.title}</h2><p>{spotifyTrack.artist} · {spotifyTrack.album}</p><SpotifyControls session={spotifySession} track={spotifyTrack} onSessionChange={setSpotifySession}/><a className="spotify-open-bar" href={spotifyTrack.url} target="_blank" rel="noopener noreferrer"><Disc3 size={19}/> Reproduzindo no Spotify <span aria-hidden="true">↗</span></a></div>}<div className="local-player">{hasAudio && <><div className={`artwork art-${song.id}`}><div className="art-halo"/><div className="art-sun"/><div className="art-hill one"/><div className="art-hill two"/><div className="art-grain"/><div className="art-label"><span>LYRAFLOW SESSIONS</span><strong>{song.album}</strong></div></div>
 
             <div className="song-title"><div><p className="eyebrow">TOCANDO AGORA</p><h2 key={song.id}>{song.title}</h2><p>{song.artist} <span>·</span> {song.album}</p></div><button className={`icon-button ${favorites.includes(song.id) ? 'favorited' : ''}`} aria-pressed={favorites.includes(song.id)} aria-label="Favorito" onClick={toggleFavorite}><Heart size={22} fill={favorites.includes(song.id) ? 'currentColor' : 'none'}/></button></div>
             <div className="player-progress"><input aria-label="Posição da música" type="range" min="0" max={duration} value={position} disabled={!hasAudio} onChange={e => seek(Number(e.target.value))} style={{'--range': `${position / duration * 100}%`} as React.CSSProperties}/><div><span>{formatTime(position)}</span><span>{formatTime(duration)}</span></div></div>
@@ -280,6 +290,7 @@ function App() {
             </>}<div className="local-note"><Music2 size={16}/><span>{hasAudio ? 'Áudio local associado a esta faixa' : 'Adicione um arquivo de áudio para começar'}</span></div>
             <input ref={fileRef} type="file" accept="audio/*" hidden onChange={e => importAudio(e.target.files?.[0])}/><button className="audio-import" onClick={() => fileRef.current?.click()}>Adicionar áudio local</button>
             <audio ref={audioRef} src={audioUrls[song.id]} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)} onEnded={e => handleAudioEnded(e.currentTarget)}/>
+            </div>
           </section>
           <section data-visual-mode="cinematic" className={`lyrics-column intro ${large ? "large-type" : ""}`}><div className="panel-heading"><h2>Letra e tradução</h2><div className="lyrics-actions"><button className="karaoke-toggle" aria-pressed={karaoke} onClick={() => setKaraoke(!karaoke)}>Karaokê</button><button aria-pressed={large} className="font-button" aria-label="Alterar tamanho da letra" title="Tamanho da letra" onClick={() => setLarge(!large)}>Aa</button></div></div>
             <KaraokeDemo/>{youtubeSource && youtubePlayback.videoId === youtubeSource.id && youtubePlayback.title && youtubePlayback.durationMs > 0 ? <SpotifyLyrics large={large} karaoke={karaoke} track={{ id: `${youtubeSource.id}:${chapterIndex}`, title: chapterTitle, artist: chapterArtist, album: '', image: `https://i.ytimg.com/vi/${youtubeSource.id}/hqdefault.jpg`, url: youtubeSource.url, progressMs: Math.max(0, youtubePlayback.positionMs - chapterStart), durationMs: chapterEnd - chapterStart, isPlaying: youtubePlayback.playing }} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : youtubeSource ? <p className="lyrics-message">Aguardando título e duração do vídeo para buscar a letra…</p> : spotifyTrack ? <SpotifyLyrics large={large} karaoke={karaoke} track={spotifyTrack} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : <>{!lyrics.length && <p className="lyrics-message">Sem letra disponível para o áudio local.</p>}<div className="lyric-list" ref={lyricList}>{lyrics.map((line, i) => <button aria-current={i === current ? "true" : undefined} key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)} disabled={!hasAudio} title={!hasAudio ? 'Associe um áudio para buscar nesta letra' : undefined}><span className="lyric-time">{formatTime(line.at)}</span>{karaoke && hasAudio && i === current ? <KaraokeText line={line} position={position} end={lyrics[i+1]?.at ?? duration}/> : <strong>{line.original}</strong>}<em>{line.translation}</em></button>)}</div></>}
