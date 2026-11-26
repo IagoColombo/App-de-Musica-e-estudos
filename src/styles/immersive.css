@@ -567,72 +567,38 @@
   }
 }
 
-.youtube-volume-menu {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  justify-self: start;
-  max-width: 100%;
-  min-width: 0;
-  border: 1px solid #ffffff29;
-  border-radius: 999px;
-  background: #ffffff08;
-}
-.youtube-volume-menu[data-open] {
-  width: min(100%, 360px);
+.youtube-main-player .youtube-transport > .youtube-volume-controls {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) 4ch;
+  grid-column: 1 / -1;
   justify-self: center;
-  border-color: var(--album-accent);
-}
-.youtube-main-player .youtube-transport .youtube-volume-toggle {
-  display: flex;
-  gap: 8px;
-  flex-shrink: 0;
-  min-height: 36px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: inherit;
-  color: #dce8e4;
-  background: transparent;
-  white-space: nowrap;
-}
-.youtube-volume-menu:hover { border-color: var(--album-accent); }
-.youtube-volume-toggle span { color: var(--album-accent); }
-.youtube-main-player .youtube-volume-menu .youtube-volume-controls {
-  display: flex;
-  flex: 1;
-  width: auto;
+  width: min(100%, 240px);
   max-width: none;
   margin: 0;
-  padding-inline-end: 10px;
+  padding: 0;
+  background: none;
 }
-.youtube-main-player .youtube-volume-menu .youtube-volume-controls[hidden] { display: none; }
-.youtube-main-player .youtube-volume-menu .youtube-volume-controls button {
-  min-width: 28px;
-  min-height: 32px;
+.youtube-main-player .youtube-volume-controls button {
+  min-width: 32px;
+  min-height: 36px;
   padding: 4px;
   border: 0;
 }
-.youtube-main-player[data-minimized] .youtube-volume-menu { grid-column: 1 / -1; }
+.youtube-volume-controls input { margin: 0; }
+.youtube-volume-value { text-align: end; font-variant-numeric: tabular-nums; }
 
 @container (min-width: 420px) {
-  .youtube-main-player:not([data-minimized]) .youtube-transport:has(.youtube-volume-menu[data-open]) {
+  .youtube-main-player:not([data-minimized]) .youtube-transport {
     grid-template-columns: minmax(0, 1fr) minmax(0, 216px);
     grid-template-areas:
       "progress volume"
       "play play";
   }
-  .youtube-main-player:not([data-minimized]) .youtube-transport:has(.youtube-volume-menu[data-open]) > .youtube-timeline {
-    grid-area: progress;
-  }
-  .youtube-main-player:not([data-minimized]) .youtube-transport:has(.youtube-volume-menu[data-open]) > .youtube-play {
-    grid-area: play;
-  }
-  .youtube-main-player:not([data-minimized]) .youtube-volume-menu[data-open] {
+  .youtube-main-player:not([data-minimized]) .youtube-timeline { grid-area: progress; }
+  .youtube-main-player:not([data-minimized]) .youtube-play { grid-area: play; }
+  .youtube-main-player:not([data-minimized]) .youtube-transport > .youtube-volume-controls {
     grid-area: volume;
     width: 100%;
-  }
-  .youtube-main-player:not([data-minimized]) .youtube-volume-menu[data-open] .youtube-volume-toggle svg {
-    display: none;
   }
 }
 
