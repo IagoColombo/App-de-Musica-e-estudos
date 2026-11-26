@@ -1,6 +1,6 @@
 import { formatTime } from './data';
 import { usePlaybackProgress } from './SpotifyLyrics';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Pause, Play, Shuffle, SkipBack, SkipForward, Volume2 } from 'lucide-react';
 import { spotifyPlayerCommand, type SpotifySession, type SpotifyTrack } from './spotify';
 
@@ -11,6 +11,15 @@ export function SpotifyControls({ session, track, onSessionChange }: { session: 
   const unavailable = !session || !session.scopes.split(' ').includes('user-modify-playback-state');
   const disabled = unavailable || busy;
   const volume = track.volumePercent;
+  const [volumeDraft, setVolumeDraft] = useState<number | null>(null);
+  const pendingVolume = useRef<number | null>(null);
+  async function commitVolume() {
+    const value = pendingVolume.current;
+    if (value === null) return;
+    pendingVolume.current = null;
+    await command(`volume?volume_percent=${value}`, 'PUT');
+    setVolumeDraft(null);
+  }
   const shuffle = Boolean(track.shuffle);
   async function command(path: string, method: 'PUT' | 'POST', body?: object) {
     if (!session || busy) return;
@@ -22,21 +31,26 @@ export function SpotifyControls({ session, track, onSessionChange }: { session: 
     finally { setBusy(false); }
   }
   return <div className="spotify-remote" aria-label="Controles do Spotify">
-    <div className="spotify-remote-buttons">
-      <button aria-label="Alternar ordem aleatória" aria-pressed={shuffle} disabled={disabled} onClick={() => { const next = !shuffle; void command(`shuffle?state=${next}`, 'PUT'); }}><Shuffle size={19}/></button>
-      <button aria-label="Faixa anterior" disabled={disabled || track.disallows?.skipping_prev} onClick={() => void command('previous', 'POST')}><SkipBack size={21}/></button>
-      <button aria-label={track.isPlaying ? 'Pausar Spotify' : 'Reproduzir Spotify'} disabled={disabled || (track.isPlaying ? track.disallows?.pausing : track.disallows?.resuming)} onClick={() => void command(track.isPlaying ? 'pause' : 'play', 'PUT')}><span className="spotify-remote-play">{track.isPlaying ? <Pause size={23} fill="currentColor"/> : <Play size={23} fill="currentColor"/>}</span></button>
-      <button aria-label="Próxima faixa" disabled={disabled || track.disallows?.skipping_next} onClick={() => void command('next', 'POST')}><SkipForward size={21}/></button>
-    </div>
     <div className="youtube-timeline"><span>{formatTime(progress / 1000)}</span>
       <input aria-label="Posição no Spotify" type="range" min="0" max={Math.max(1, track.durationMs)} step="1000" value={progress}
         disabled={disabled || !track.durationMs || track.disallows?.seeking}
         onChange={event => void command(`seek?position_ms=${event.target.value}`, 'PUT')}/>
       <span>{formatTime(track.durationMs / 1000)}</span></div>
-    {volume !== undefined && track.supportsVolume !== false ? <label className="spotify-remote-volume"><Volume2 size={17}/>
-      <input aria-label="Volume do Spotify" type="range" min="0" max="100" value={volume} disabled={disabled}
-        onChange={event => void command(`volume?volume_percent=${event.target.value}`, 'PUT')}/><span>{volume}%</span></label>
-      : <small>Volume indisponível neste dispositivo.</small>}
+    <div className="spotify-remote-buttons">
+      <button aria-label="Alternar ordem aleatória" aria-pressed={shuffle} disabled={disabled} onClick={() => { const next = !shuffle; void command(`shuffle?state=${next}`, 'PUT'); }}><Shuffle size={19}/></button>
+      <button aria-label="Faixa anterior" disabled={disabled || track.disallows?.skipping_prev} onClick={() => void command('previous', 'POST')}><SkipBack size={21}/></button>
+      <button aria-label={track.isPlaying ? 'Pausar Spotify' : 'Reproduzir Spotify'} disabled={disabled || (track.isPlaying ? track.disallows?.pausing : track.disallows?.resuming)} onClick={() => void command(track.isPlaying ? 'pause' : 'play', 'PUT')}><span className="spotify-remote-play">{track.isPlaying ? <Pause size={23} fill="currentColor"/> : <Play size={23} fill="currentColor"/>}</span></button>
+      <button aria-label="Próxima faixa" disabled={disabled || track.disallows?.skipping_next} onClick={() => void command('next', 'POST')}><SkipForward size={21}/></button>
+    {volume !== undefined && track.supportsVolume !== false ? <details className="spotify-volume-menu"><summary aria-label="Ajustar volume"><Volume2 size={21}/></summary><label className="spotify-remote-volume">
+      <input aria-label="Volume do Spotify" type="range" min="0" max="100" value={volumeDraft ?? volume} disabled={disabled}
+        onChange={event => {
+          pendingVolume.current = event.currentTarget.valueAsNumber;
+          setVolumeDraft(pendingVolume.current);
+        }}
+        onPointerUp={() => void commitVolume()} onPointerCancel={() => void commitVolume()}
+        onKeyUp={() => void commitVolume()} onBlur={() => void commitVolume()}/><span>{volumeDraft ?? volume}%</span></label></details>
+      : <span className="spotify-volume-unavailable" title="Volume indisponível neste dispositivo"><Volume2 size={21}/></span>}
+    </div>
     {!unavailable && (track.disallows?.seeking || track.disallows?.skipping_next || track.disallows?.skipping_prev || (track.isPlaying ? track.disallows?.pausing : track.disallows?.resuming)) && <small>Alguns controles estão indisponíveis para esta reprodução.</small>}
     {unavailable && <small>Autorize o controle do player para usar os comandos do Spotify.</small>}
     {error && <small role="alert">{error}</small>}

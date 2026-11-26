@@ -436,3 +436,135 @@
 .youtube-volume-value { min-width: 4ch; text-align: end; font-variant-numeric: tabular-nums; }
 .youtube-main-player[data-minimized] .youtube-play { grid-area: 1 / 1; }
 .youtube-main-player[data-minimized] .youtube-volume-value { display: none; }
+
+/* Stack the transport above the timeline, with volume at the right. */
+.spotify-main-player .spotify-remote {
+  grid-template-columns: minmax(0, 1fr);
+}
+.spotify-main-player .spotify-remote-buttons {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 46px));
+  gap: clamp(4px, 3cqi, 16px);
+  width: 100%;
+  margin-block: 4px 8px;
+  justify-content: center;
+}
+.spotify-main-player .spotify-remote-buttons button {
+  min-width: 0;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.spotify-main-player .spotify-remote-buttons button:hover:not(:disabled) {
+  background: #ffffff12;
+  border-radius: 50%;
+}
+.spotify-main-player .spotify-remote-volume,
+.youtube-main-player:not([data-minimized]) .youtube-volume-controls {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 4ch;
+  align-items: center;
+  gap: 8px;
+  width: min(100%, 196px);
+  margin-inline: auto;
+  padding: 0;
+  background: none;
+}
+.spotify-main-player .spotify-remote-volume {
+  grid-template-columns: 4ch minmax(0, 1fr) 4ch;
+  gap: 10px;
+  width: min(100%, 210px);
+  margin-inline: auto 0;
+}
+
+:is(.spotify-remote-volume, .youtube-volume-controls) > :is(svg, button) { justify-self: center; }
+.spotify-main-player .spotify-remote-volume input { width: 100%; margin: 0; }
+.spotify-remote-volume > span { text-align: end; font-variant-numeric: tabular-nums; }
+.youtube-main-player:not([data-minimized]) .youtube-volume-controls button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-color: transparent;
+  box-shadow: none;
+}
+.local-audio-list { display: grid; gap: 8px; margin-block-start: 16px; }
+.local-audio-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  padding: 4px;
+  border: 1px solid #b5d2cc2e;
+  border-radius: 10px;
+}
+.local-audio-row button { color: inherit; background: transparent; border: 0; padding: 10px; }
+.local-audio-play { display: flex; gap: 10px; align-items: center; text-align: start; }
+.local-audio-play svg { flex: none; }
+.local-audio-play span { overflow-wrap: anywhere; }
+.local-audio-row button:hover { background: #ffffff14; border-radius: 6px; }
+
+.player-column:not([data-audio-dock]) .spotify-main-player {
+  border: 1px solid #ffffff28;
+  border-radius: 24px;
+  background: linear-gradient(145deg, #ffffff12, #ffffff04);
+}
+.player-column:not([data-audio-dock]) .spotify-main-player h2 {
+  font-size: clamp(24px, 7cqi, 46px);
+}
+.spotify-main-player .spotify-remote-buttons {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  align-items: center;
+  justify-items: center;
+  gap: 4px;
+}
+.spotify-main-player .spotify-remote-buttons :is(button, summary) {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  max-width: 100%;
+  min-width: 0;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+}
+.spotify-volume-menu { justify-self: center; align-self: start; }
+.spotify-main-player .spotify-remote-buttons:has(.spotify-volume-menu[open]) { align-items: start; }
+.spotify-volume-menu summary { cursor: pointer; list-style: none; }
+.spotify-volume-menu summary::marker { content: ''; }
+.spotify-volume-menu summary::-webkit-details-marker { display: none; }
+.spotify-volume-unavailable { opacity: .4; }
+.spotify-main-player .spotify-remote-volume {
+  position: static;
+  margin: 6px auto 0;
+  width: max-content;
+  grid-template-columns: 1fr;
+  justify-items: center;
+  gap: 4px;
+  padding: 8px;
+  border: 1px solid #ffffff30;
+  border-radius: 12px;
+  background: #192429;
+}
+.spotify-main-player .spotify-volume-menu summary { margin-inline: auto; }
+.spotify-main-player .spotify-remote-volume input {
+  width: clamp(76px, 20cqi, 140px);
+  height: 24px;
+  margin: 0;
+  touch-action: none;
+}
+.spotify-remote-buttons :is(button, summary):focus-visible {
+  outline: 2px solid var(--album-accent);
+  outline-offset: 3px;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .spotify-main-player .spotify-remote-buttons :is(button, summary) {
+    transition: transform 160ms ease-out, background-color 160ms ease-out;
+  }
+  .spotify-main-player .spotify-remote-buttons :is(button:not(:disabled), summary):hover {
+    transform: scale(1.08);
+    background-color: #ffffff12;
+  }
+  .spotify-main-player .spotify-remote-buttons :is(button:not(:disabled), summary):active {
+    transform: scale(.94);
+  }
+}
