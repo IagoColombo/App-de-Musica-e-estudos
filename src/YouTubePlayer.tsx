@@ -32,11 +32,19 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
   const [volume, setVolume] = useState(72);
   const [title, setTitle] = useState('Vídeo do YouTube');
   const [artist, setArtist] = useState('');
+  const [state, setState] = useState(-1);
+  const [offline, setOffline] = useState(!navigator.onLine);
+  useEffect(() => {
+    const update = () => setOffline(!navigator.onLine);
+    window.addEventListener('online', update); window.addEventListener('offline', update);
+    return () => { window.removeEventListener('online', update); window.removeEventListener('offline', update); };
+  }, []);
   const [error, setError] = useState('');
   useEffect(() => { onPlayback({ title, artist, positionMs: position * 1000, durationMs: duration * 1000, playing }); }, [title, artist, position, duration, playing, onPlayback]);
 
   useEffect(() => {
     let cancelled = false;
+    setDuration(0); setState(-1); setTitle('Vídeo do YouTube'); setArtist('');
     setReady(false); setPlaying(false); setPosition(0); setError('');
     loadAPI().then(YT => {
       if (cancelled || !mount.current) return;
@@ -49,13 +57,26 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
           onReady: () => { if (!cancelled) { setReady(true); player.current?.setVolume(volume); const data = player.current?.getVideoData(); setTitle(data?.title || 'Vídeo do YouTube'); setArtist(data?.author || ''); } },
           onStateChange: (event: { data: number }) => {
             if (cancelled) return;
+            setState(event.data); setPosition(player.current?.getCurrentTime() || 0);
             setPlaying(event.data === 1);
             setDuration(player.current?.getDuration() || 0);
             const data = player.current?.getVideoData();
             setTitle(data?.title || 'Vídeo do YouTube');
             setArtist(data?.author || '');
           },
-          onError: () => setError('Este vídeo não permite reprodução incorporada. Abra-o no YouTube.'),
+          onError: (event: { data: number }) => {
+            if (cancelled) return;
+            setReady(false); setPlaying(false);
+            const messages: Record<number, string> = {
+              2: 'O YouTube recebeu um identificador de vídeo inválido.',
+              5: 'O navegador não conseguiu reproduzir este vídeo.',
+              100: 'Este vídeo foi removido, é privado ou está indisponível.',
+              101: 'O YouTube recusou a reprodução incorporada deste vídeo.',
+              150: 'O YouTube recusou a reprodução incorporada deste vídeo.',
+              153: 'O YouTube não recebeu a identificação de origem. Verifique as configurações de privacidade e extensões do navegador.',
+            };
+            setError(`${messages[event.data] || 'Falha ao carregar o vídeo.'} (YouTube ${event.data})`);
+          },
         },
       });
     }).catch(err => { if (!cancelled) setError(String(err)); });
@@ -65,19 +86,24 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
     if (!active) player.current?.pauseVideo();
   }, [active]);
   useEffect(() => {
-    if (!playing) return;
+    if (!ready) return;
     const timer = window.setInterval(() => {
       setPosition(player.current?.getCurrentTime() || 0);
       setDuration(player.current?.getDuration() || 0);
     }, 500);
     return () => window.clearInterval(timer);
-  }, [playing]);
+  }, [ready]);
   const time = (value: number) => `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, '0')}`;
+  const status = offline ? 'Sem conexão' : error ? 'Indisponível' : !ready ? 'Carregando' : ({ 0: 'Encerrado', 1: 'Reproduzindo', 2: 'Pausado', 3: 'Carregando vídeo' }[state] ?? 'Pronto para tocar');
   return <div className="youtube-main-player">
-    <div className="youtube-heading"><span>YOUTUBE · {playing ? 'TOCANDO AGORA' : 'PRONTO PARA TOCAR'}</span><button onClick={onClose} aria-label="Fechar player do YouTube"><X size={17}/></button></div>
+    <div className="youtube-heading"><span role="status">YouTube · {status}</span><button onClick={onClose} aria-label="Fechar player do YouTube"><X size={17}/></button></div>
     <div className="youtube-video" ref={mount} aria-label="Player de vídeo do YouTube"/>
     <h2>{title}</h2>
-    {error && <p role="alert">{error} <a href={source.url} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a></p>}
-    <div className="youtube-transport"><button disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button><span>{time(position)}</span><input aria-label="Posição no YouTube" type="range" min="0" max={Math.max(1, duration)} value={position} disabled={!ready || !duration} onChange={e => { const next = Number(e.target.value); player.current?.seekTo(next, true); setPosition(next); }}/><span>{time(duration)}</span><Volume2 size={17}/><input aria-label="Volume do YouTube" className="youtube-volume" type="range" min="0" max="100" value={volume} onChange={e => { const next = Number(e.target.value); setVolume(next); player.current?.setVolume(next); }}/></div>
+    {artist && <p className="youtube-artist">{artist}</p>}
+    {error && <div className="youtube-error">
+      <p role="alert">{error}</p>
+      <a href={source.url} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>
+    </div>}
+    {!error && <div className="youtube-transport"><button disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button><div className="youtube-timeline"><span>{time(position)}</span><input aria-label="Posição no YouTube" type="range" min="0" max={Math.max(1, duration)} value={position} disabled={!ready || !duration} onChange={e => { const next = Number(e.target.value); player.current?.seekTo(next, true); setPosition(next); }}/><span>{time(duration)}</span></div><div className="youtube-volume-controls"><Volume2 size={17} aria-hidden="true"/><input aria-label="Volume do YouTube" disabled={!ready} className="youtube-volume" type="range" min="0" max="100" value={volume} onChange={e => { const next = Number(e.target.value); setVolume(next); player.current?.setVolume(next); }}/></div></div>}
   </div>;
 }

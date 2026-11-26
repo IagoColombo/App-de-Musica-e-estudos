@@ -37,6 +37,22 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
   }
 }
 
+/* Keep the focus indicator around the whole pill, including its icon. */
+.main-area > .topbar .search:focus-within {
+  border-color: var(--color-focus);
+}
+
+.main-area > .topbar .search:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@supports selector(:has(input:focus-visible)) {
+  .main-area > .topbar .search input:focus-visible {
+    outline: none;
+  }
+}
+
 /* Result list must stay reachable on short viewports now that the bar is always on screen. */
 .main-area > .topbar .search-results {
   max-height: calc(100dvh - var(--topbar-height) - var(--space-4));
@@ -59,3 +75,16 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
 @media (min-width: 801px) {
   .app > .sidebar { overflow-y: auto; scrollbar-width: thin; }
 }
+.topbar .search .search-clear {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.topbar .search .search-clear:hover { background: #ffffff20; }
