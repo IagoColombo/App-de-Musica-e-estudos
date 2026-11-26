@@ -100,7 +100,10 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
     <div className="youtube-video" ref={mount} aria-label="Player de vídeo do YouTube"/>
     <h2>{title}</h2>
     {artist && <p className="youtube-artist">{artist}</p>}
-    {error && <p role="alert">{error} <a href={source.url} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a></p>}
-    <div className="youtube-transport"><button disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button><span>{time(position)}</span><input aria-label="Posição no YouTube" type="range" min="0" max={Math.max(1, duration)} value={position} disabled={!ready || !duration} onChange={e => { const next = Number(e.target.value); player.current?.seekTo(next, true); setPosition(next); }}/><span>{time(duration)}</span><Volume2 size={17}/><input aria-label="Volume do YouTube" disabled={!ready} className="youtube-volume" type="range" min="0" max="100" value={volume} onChange={e => { const next = Number(e.target.value); setVolume(next); player.current?.setVolume(next); }}/></div>
+    {error && <div className="youtube-error">
+      <p role="alert">{error}</p>
+      <a href={source.url} target="_blank" rel="noopener noreferrer">Abrir no YouTube</a>
+    </div>}
+    {!error && <div className="youtube-transport"><button disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button><div className="youtube-timeline"><span>{time(position)}</span><input aria-label="Posição no YouTube" type="range" min="0" max={Math.max(1, duration)} value={position} disabled={!ready || !duration} onChange={e => { const next = Number(e.target.value); player.current?.seekTo(next, true); setPosition(next); }}/><span>{time(duration)}</span></div><div className="youtube-volume-controls"><Volume2 size={17} aria-hidden="true"/><input aria-label="Volume do YouTube" disabled={!ready} className="youtube-volume" type="range" min="0" max="100" value={volume} onChange={e => { const next = Number(e.target.value); setVolume(next); player.current?.setVolume(next); }}/></div></div>}
   </div>;
 }

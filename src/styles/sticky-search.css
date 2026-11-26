@@ -75,3 +75,16 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
 @media (min-width: 801px) {
   .app > .sidebar { overflow-y: auto; scrollbar-width: thin; }
 }
+.topbar .search .search-clear {
+  display: grid;
+  place-items: center;
+  flex: 0 0 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+.topbar .search .search-clear:hover { background: #ffffff20; }
