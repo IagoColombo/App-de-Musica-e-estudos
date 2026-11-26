@@ -433,9 +433,7 @@
   max-width: none;
 }
 .youtube-main-player .youtube-volume-controls button { flex-shrink: 0; }
-.youtube-volume-value { min-width: 4ch; text-align: end; font-variant-numeric: tabular-nums; }
 .youtube-main-player[data-minimized] .youtube-play { grid-area: 1 / 1; }
-.youtube-main-player[data-minimized] .youtube-volume-value { display: none; }
 
 /* Stack the transport above the timeline, with volume at the right. */
 .spotify-main-player .spotify-remote {
@@ -568,3 +566,67 @@
     transform: scale(.94);
   }
 }
+
+.youtube-volume-menu { min-width: 0; }
+.youtube-volume-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #ffffff29;
+  border-radius: 999px;
+  color: #dce8e4;
+  background: #ffffff08;
+  cursor: pointer;
+  list-style: none;
+  white-space: nowrap;
+}
+.youtube-volume-menu summary::-webkit-details-marker { display: none; }
+.youtube-volume-menu summary:hover,
+.youtube-volume-menu[open] summary { border-color: var(--album-accent); }
+.youtube-volume-menu summary span { color: var(--album-accent); }
+.youtube-main-player .youtube-volume-menu .youtube-volume-controls {
+  max-width: none;
+  margin-top: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #ffffff08;
+}
+.youtube-main-player[data-minimized] .youtube-volume-menu { grid-column: 1 / -1; }
+
+.modal.focus-settings-panel {
+  display: grid;
+  gap: 14px;
+  width: min(520px, 100%);
+  padding: clamp(16px, 4vw, 26px);
+  border: 1px solid #b5d2cc49;
+  border-radius: 22px;
+  background: #10242b;
+  box-shadow: 0 24px 65px #0008;
+}
+.focus-settings-panel .modal-head h2 { text-transform: none; }
+.focus-settings-panel .settings-group {
+  display: grid;
+  gap: 8px;
+  padding: 15px;
+  border: 1px solid #b5d2cc25;
+  border-radius: 14px;
+  background: #ffffff05;
+}
+.settings-group :is(h3, p) { margin: 0; }
+.settings-group .rule { gap: 12px; min-height: 36px; }
+.settings-group .rule:last-child { border-bottom: 0; }
+.focus-settings-panel .modal-done { margin: 0; }
+
+.focus-card .focus-drawer {
+  padding: 12px;
+  border: 1px solid #b5d2cc25;
+  border-radius: 12px;
+  background: #ffffff05;
+}
+.focus-card .focus-drawer summary { font-weight: 600; }
+.focus-card .focus-presets button,
+.focus-card .focus-options input,
+.focus-card .focus-blocking :is(select, button) { border-radius: 8px; }

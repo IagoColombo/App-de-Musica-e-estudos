@@ -168,6 +168,8 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
       {preview !== null && <span className="youtube-seek-preview" aria-hidden="true">{time(preview)}</span>}
       </div><span>{time(duration)}</span></div>
       <button type="button" className="youtube-play" disabled={!ready} onClick={() => playing ? player.current?.pauseVideo() : player.current?.playVideo()} aria-label={playing ? 'Pausar YouTube' : 'Reproduzir YouTube'}>{playing ? <Pause size={21}/> : <Play size={21}/>}</button>
+      <details className="youtube-volume-menu">
+      <summary><Volume2 size={17} aria-hidden="true"/> Volume <span>{muted ? 0 : volume}%</span></summary>
       <div className="youtube-volume-controls"><button type="button" disabled={!ready} aria-label={muted || volume === 0 ? 'Restaurar volume do YouTube' : 'Silenciar YouTube'} onClick={() => {
       const current = player.current;
       if (!current) return;
@@ -187,7 +189,6 @@ export function YouTubePlayer({ source, minimized, hidden, onExpand, onClose, on
       if (next > 0) current.unMute();
       current.setVolume(next);
     }}/>
-    <span className="youtube-volume-value" aria-hidden="true">{muted ? 0 : volume}%</span>
-    </div></div>}
+    </div></details></div>}
   </section>;
 }
