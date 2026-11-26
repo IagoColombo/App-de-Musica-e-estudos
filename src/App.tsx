@@ -16,7 +16,7 @@ import { useAlbumPalette } from './useAlbumPalette';
 import { WindowControls } from './WindowControls';
 import { UpdateBanner } from './UpdateBanner';
 import { useStuckHeader } from './useStuckHeader';
-import { useButtonMotion, useAlbumTransition, useChannelRail, useFocusModeTimeline, useLyricsAnimation, usePageEntrance } from './useLyraMotion';
+import { useBrandPlayback, useButtonMotion, useAlbumTransition, useChannelRail, useFocusModeTimeline, useLyricsAnimation, usePageEntrance } from './useLyraMotion';
 import { YouTubePlayer } from './YouTubePlayer';
 import { YouTubeSearch } from './YouTubeSearchPanel';
 import { getYouTubeChapters, type YouTubeChapter } from './youtubeSearch';
@@ -94,6 +94,9 @@ function App() {
   const channelRail = useRef<HTMLDivElement>(null);
   useChannelRail(channelRail, activeNav);
   useButtonMotion(root);
+  const brandMark = useRef<HTMLSpanElement>(null);
+  const youtubePlaying = youtubeSource?.id === youtubePlayback.videoId && youtubePlayback.playing;
+  useBrandPlayback(brandMark, youtubePlaying || Boolean(spotifyTrack?.isPlaying) || (hasAudio && playing));
   const [karaoke, setKaraoke] = useState(() => localStorage.getItem("lyra:karaoke") === "true");
   const [large, setLarge] = useState(false);
   useEffect(() => { localStorage.setItem("lyra:karaoke", String(karaoke)); }, [karaoke]);
@@ -249,7 +252,7 @@ function App() {
   return <div className={`app ${spotifyTrack ? 'spotify-active' : ''}`} ref={root}>
     <UpdateBanner onAvailable={setUpdateVersion}/>
     <aside className="sidebar">
-      <div className="brand"><span className="brand-mark"><i/><i/><i/><i/><i/></span><b>LyraFlow</b></div>
+      <div className="brand"><span className="brand-mark" ref={brandMark} aria-hidden="true"><i/><i/><i/><i/><i/></span><b>LyraFlow</b></div>
       <div className="channel-rail" ref={channelRail}>
       <span className="channel-marker" aria-hidden="true"/>
       <div className="side-group">{nav.map(({ label, icon: Icon }) => <button key={label} className={`nav-item ${activeNav === label ? 'selected' : ''}`} aria-current={activeNav === label ? 'page' : undefined} onClick={() => navigatePage(label)}><Icon size={19}/>{label}</button>)}</div>
