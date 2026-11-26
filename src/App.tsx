@@ -2,7 +2,7 @@ import { KaraokeDemo } from './CinematicKaraoke';
 import { KaraokeText } from './Karaoke';
 import { useEffect, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, ChevronDown, Clock3, Disc3, Heart, Home, Music2, Pause, Play, Repeat2, Search, Settings2, Shuffle, SkipBack, SkipForward, Volume2, X } from 'lucide-react';
-import { formatTime, songs } from './data';
+import { formatTime, type Song } from './data';
 import { lyricsProxy, type ProxyEvent } from './lyricsService';
 import { recognizeMusicLink, type MusicSource } from './sourceRecognition';
 import { SpotifyPanel } from './SpotifyPanel';
@@ -23,12 +23,16 @@ import { getYouTubeChapters, type YouTubeChapter } from './youtubeSearch';
 
 const nav = [{ label: 'Início', icon: Home }, { label: 'Buscar', icon: Search }, { label: 'Histórico', icon: Clock3 }, { label: 'Favoritos', icon: Heart }];
 
+const emptySong: Song = { id: "", title: "", artist: "", album: "", duration: 0, accent: "#6db7b4", lines: [] };
+
 function App() {
+  const [songs, setSongs] = useState<Song[]>([]);
+  const [updateVersion, setUpdateVersion] = useState<string | null>(null);
   const [songIndex, setSongIndex] = useState(0);
   const [spotifyTrack, setSpotifyTrack] = useState<SpotifyTrack | null>(null);
   const [spotifyLookup, setSpotifyLookup] = useState<SpotifyLookup | null>(null);
   const [spotifyRefresh, setSpotifyRefresh] = useState(0);
-  const song = songs[songIndex];
+  const song = songs[songIndex] ?? emptySong;
   const [recognizedSource, setRecognizedSource] = useState<MusicSource | null>(null);
   const youtubeSource = recognizedSource?.provider === 'YouTube' ? recognizedSource : null;
   const [youtubePlayback, setYoutubePlayback] = useState({ title: '', artist: '', positionMs: 0, durationMs: 0, playing: false });
@@ -73,10 +77,10 @@ function App() {
   const [showSpotifyPanel, setShowSpotifyPanel] = useState(false);
   const [favorites, setFavorites] = useState<string[]>(() => JSON.parse(localStorage.getItem('lyra:favorites') || '[]'));
   const [history, setHistory] = useState<string[]>(() => JSON.parse(localStorage.getItem('lyra:history') || '[]'));
-  const [focusSong, setFocusSong] = useState(() => localStorage.getItem('lyra:focusSong') || songs[0].id);
+  const [focusSong, setFocusSong] = useState(() => localStorage.getItem('lyra:focusSong') || "");
   const [focusPlaylist, setFocusPlaylist] = useState<string[]>(() => {
-    try { const saved = JSON.parse(localStorage.getItem('lyra:focusPlaylist') || '[]'); const valid = Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string' && songs.some(song => song.id === id)) : []; return valid.length ? valid : [songs[0].id]; }
-    catch { return [songs[0].id]; }
+    try { const saved = JSON.parse(localStorage.getItem('lyra:focusPlaylist') || '[]'); const valid = Array.isArray(saved) ? saved.filter((id): id is string => typeof id === 'string' && songs.some(song => song.id === id)) : []; return valid; }
+    catch { return []; }
   });
   const [audioUrls, setAudioUrls] = useState<Record<string, string>>({});
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -108,7 +112,7 @@ function App() {
   useEffect(() => { localStorage.setItem('lyra:history', JSON.stringify(history)); }, [history]);
   useEffect(() => { localStorage.setItem('lyra:focusSong', focusSong); }, [focusSong]);
   useEffect(() => { localStorage.setItem('lyra:focusPlaylist', JSON.stringify(focusPlaylist)); }, [focusPlaylist]);
-  useEffect(() => { if (!focusPlaylist.includes(focusSong)) setFocusSong(focusPlaylist[0]); }, [focusPlaylist, focusSong]);
+  useEffect(() => { if (!focusPlaylist.includes(focusSong)) setFocusSong(focusPlaylist[0] ?? ""); }, [focusPlaylist, focusSong]);
   useEffect(() => { localStorage.setItem('lyra:blocked', JSON.stringify(blocked)); }, [blocked]);
   useEffect(() => { localStorage.setItem('lyra:focusMinutes', String(focusMinutes)); }, [focusMinutes]);
   useEffect(() => {
@@ -134,6 +138,7 @@ function App() {
   }, [focusRunning, focus]);
 
   function changeSong(next: number, autoPlay = false) {
+    if (!songs.length) return;
     setSongIndex((next + songs.length) % songs.length);
     setPosition(0);
     setPlaying(autoPlay && Boolean(audioUrls[songs[(next + songs.length) % songs.length].id]));
@@ -184,10 +189,12 @@ function App() {
   function importAudio(file?: File) {
     if (!file) return;
     if (!file.type.startsWith('audio/')) { alert('Escolha um arquivo de áudio.'); return; }
-    setAudioUrls(old => {
-      if (old[song.id]) URL.revokeObjectURL(old[song.id]);
-      return { ...old, [song.id]: URL.createObjectURL(file) };
-    });
+    const id = crypto.randomUUID();
+    const url = URL.createObjectURL(file);
+    setSongs(items => [...items, { ...emptySong, id, title: file.name.replace(/\.[^.]+$/, ''), artist: 'Arquivo local' }]);
+    setAudioUrls(old => ({ ...old, [id]: url }));
+    setSongIndex(songs.length);
+    setHistory(old => [id, ...old].slice(0, 20));
     setPosition(0); setPlaying(false); setAudioDuration(null);
   }
   function seek(value: number) {
@@ -235,7 +242,7 @@ function App() {
   const queryLooksLikeLink = /(?:https?:\/\/|spotify\.com|youtu(?:be)?\.)/i.test(query);
 
   return <div className={`app ${spotifyTrack ? 'spotify-active' : ''}`} ref={root}>
-    <UpdateBanner/>
+    <UpdateBanner onAvailable={setUpdateVersion}/>
     <aside className="sidebar">
       <div className="brand"><span className="brand-mark"><i/><i/><i/><i/><i/></span><b>LyraFlow</b></div>
       <div className="channel-rail" ref={channelRail}>
@@ -252,7 +259,7 @@ function App() {
       <div className="topbar-sentinel" ref={topbarSentinel} aria-hidden="true"/>
       <header className="topbar" data-stuck={topbarStuck} data-tauri-drag-region><div className="history-buttons"><button aria-label="Voltar" disabled={navigation.index === 0} onClick={() => moveNavigation(-1)}><ArrowLeft size={18}/></button><button aria-label="Avançar" disabled={navigation.index >= navigation.pages.length - 1} onClick={() => moveNavigation(1)}><ArrowRight size={18}/></button></div>
         <div className="search-wrap"><div className="search"><Search size={20} aria-hidden="true"/><input ref={searchInput} aria-label="Buscar música, artista ou link" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key !== 'Enter') return; if (queryLooksLikeLink) { detectMusicLink(query); setQuery(''); } else if (shownSongs[0]) { changeSong(songs.indexOf(shownSongs[0])); navigatePage('Início'); } }} placeholder="Buscar música, artista ou colar um link..."/>{query && <button type="button" className="search-clear" aria-label="Limpar busca" onClick={() => { setQuery(''); setLinkError(''); searchInput.current?.focus(); }}><X size={16} aria-hidden="true"/></button>}</div>{query && <div className="search-results">{queryLooksLikeLink ? <button onClick={() => { detectMusicLink(query); setQuery(''); }}><Search size={16}/> Identificar link do Spotify ou YouTube</button> : <>{shownSongs.map((s) => <button key={s.id} onClick={() => { changeSong(songs.indexOf(s)); navigatePage('Início'); }}><Music2 size={16}/><span>{s.title}<small>{s.artist}</small></span></button>)}<YouTubeSearch key={query.trim()} query={query} onSelect={item => { detectMusicLink(`https://www.youtube.com/watch?v=${item.id}`); setQuery(''); }}/></>}</div>}{(recognizedSource?.provider === 'Spotify' || linkError) && <div className="search-link-result">{recognizedSource?.provider === 'Spotify' ? <><div><strong>Spotify identificado</strong><button onClick={() => setRecognizedSource(null)} aria-label="Fechar link"><X size={15}/></button></div><iframe title="Player Spotify" src={recognizedSource.embedUrl} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen loading="lazy"/><a href={recognizedSource.url} target="_blank" rel="noopener noreferrer">Abrir no Spotify ↗</a></> : <p role="alert">{linkError}</p>}</div>}</div>
-        <WindowControls/></header>
+        <WindowControls updateVersion={updateVersion}/></header>
       <div className="content">
         {activeNav !== 'Início' && activeNav !== 'Spotify' && <div className="collection"><div><p className="eyebrow">{activeNav === 'Buscar' ? 'ENCONTRE SUA MÚSICA' : 'SUA BIBLIOTECA'}</p><h2>{activeNav}</h2><p className="collection-intro">{activeNav === 'Buscar' ? 'Busque uma música pelo nome ou artista na barra acima. Você também pode colar um link.' : activeNav === 'Favoritos' ? 'As músicas que você marcou para ouvir de novo.' : activeNav === 'Histórico' ? 'As últimas faixas que você abriu.' : 'Faixas disponíveis para associar um arquivo de áudio local.'}</p></div><div className="collection-list">{(activeNav === 'Buscar' ? shownSongs : activeNav === 'Favoritos' ? songs.filter(s => favorites.includes(s.id)) : activeNav === 'Histórico' ? history.map(id => songs.find(s => s.id === id)).filter((s): s is typeof songs[number] => Boolean(s)) : songs).map(s => <button key={s.id} onClick={() => { changeSong(songs.indexOf(s)); navigatePage('Início'); }}><Music2 size={17}/><span>{s.title}<small>{s.artist}</small></span><ArrowRight size={15}/></button>)}{activeNav === 'Favoritos' && favorites.length === 0 && <p>Nenhuma faixa favorita ainda.</p>}{activeNav === 'Histórico' && history.length === 0 && <p>O histórico aparece após você escolher uma faixa.</p>}</div></div>}
         <section className="spotify-account" hidden={activeNav !== 'Spotify' || (!showSpotifyPanel && spotifyConnected)} aria-label="Conta Spotify">
@@ -263,18 +270,18 @@ function App() {
         <section className="page-heading intro"><div><p className="eyebrow accent-text">MÚSICA EM FOCO</p><h1>Deixe a música falar.</h1></div><span className="source-pill"><span className="live-dot"/> {youtubeSource ? 'YouTube' : spotifyTrack ? 'Spotify' : 'Biblioteca local'} <ChevronDown size={14}/></span></section>
         <div className="workspace">
           {youtubeSource && <YouTubePlayer source={youtubeSource} active={activeNav === 'Início'} onClose={() => setRecognizedSource(null)} onPlayback={setYoutubePlayback}/>}
-          <section className="player-column intro">{spotifyTrack && <div className="spotify-main-player">{spotifyTrack.image && <img src={spotifyTrack.image} alt={`Capa de ${spotifyTrack.album}`}/>}<p className="eyebrow">SPOTIFY · {spotifyTrack.isPlaying ? 'TOCANDO AGORA' : 'PAUSADA'}</p><h2 key={spotifyTrack.id}>{spotifyTrack.title}</h2><p>{spotifyTrack.artist} · {spotifyTrack.album}</p><div className="spotify-progress"><span>{formatTime(spotifyTrack.progressMs / 1000)}</span><div className="spotify-progress-track"><span style={{ width: `${spotifyTrack.durationMs ? spotifyTrack.progressMs / spotifyTrack.durationMs * 100 : 0}%` }}/></div><span>{formatTime(spotifyTrack.durationMs / 1000)}</span></div><a className="spotify-open-bar" href={spotifyTrack.url} target="_blank" rel="noopener noreferrer"><Disc3 size={19}/> Reproduzindo no Spotify <span aria-hidden="true">↗</span></a></div>}<div className={`artwork art-${song.id}`}><div className="art-halo"/><div className="art-sun"/><div className="art-hill one"/><div className="art-hill two"/><div className="art-grain"/><div className="art-label"><span>LYRAFLOW SESSIONS</span><strong>{song.album}</strong></div></div>
-            {spotifyTrack && <SpotifyControls session={spotifySession} track={spotifyTrack} onSessionChange={setSpotifySession}/>}
+          <section className="player-column intro">{spotifyTrack && <div className="spotify-main-player">{spotifyTrack.image && <img src={spotifyTrack.image} alt={`Capa de ${spotifyTrack.album}`}/>}<p className="eyebrow">SPOTIFY · {spotifyTrack.isPlaying ? 'TOCANDO AGORA' : 'PAUSADA'}</p><h2 key={spotifyTrack.id}>{spotifyTrack.title}</h2><p>{spotifyTrack.artist} · {spotifyTrack.album}</p><SpotifyControls session={spotifySession} track={spotifyTrack} onSessionChange={setSpotifySession}/><a className="spotify-open-bar" href={spotifyTrack.url} target="_blank" rel="noopener noreferrer"><Disc3 size={19}/> Reproduzindo no Spotify <span aria-hidden="true">↗</span></a></div>}{hasAudio && <><div className={`artwork art-${song.id}`}><div className="art-halo"/><div className="art-sun"/><div className="art-hill one"/><div className="art-hill two"/><div className="art-grain"/><div className="art-label"><span>LYRAFLOW SESSIONS</span><strong>{song.album}</strong></div></div>
+
             <div className="song-title"><div><p className="eyebrow">TOCANDO AGORA</p><h2 key={song.id}>{song.title}</h2><p>{song.artist} <span>·</span> {song.album}</p></div><button className={`icon-button ${favorites.includes(song.id) ? 'favorited' : ''}`} aria-pressed={favorites.includes(song.id)} aria-label="Favorito" onClick={toggleFavorite}><Heart size={22} fill={favorites.includes(song.id) ? 'currentColor' : 'none'}/></button></div>
             <div className="player-progress"><input aria-label="Posição da música" type="range" min="0" max={duration} value={position} disabled={!hasAudio} onChange={e => seek(Number(e.target.value))} style={{'--range': `${position / duration * 100}%`} as React.CSSProperties}/><div><span>{formatTime(position)}</span><span>{formatTime(duration)}</span></div></div>
             <div className="controls"><button aria-label="Reprodução aleatória" aria-pressed={shuffle} className={shuffle ? 'control-active' : ''} onClick={() => setShuffle(value => !value)}><Shuffle size={19}/></button><button aria-label="Faixa anterior" onClick={() => skipSong(-1)}><SkipBack size={21} fill="currentColor"/></button><button className="play-button" aria-label={playing ? 'Pausar' : 'Reproduzir áudio local'} disabled={!hasAudio} title={!hasAudio ? 'Associe um arquivo de áudio para reproduzir' : undefined} onClick={() => setPlaying(!playing)}>{playing ? <Pause size={24} fill="currentColor"/> : <Play size={24} fill="currentColor"/>}</button><button aria-label="Próxima faixa" onClick={() => skipSong(1)}><SkipForward size={21} fill="currentColor"/></button><button aria-label="Repetir faixa" aria-pressed={repeat} className={repeat ? 'control-active' : ''} onClick={() => setRepeat(value => !value)}><Repeat2 size={19}/></button></div>
             <div className="volume"><Volume2 size={17}/><input aria-label="Volume do áudio local" type="range" min="0" max="100" value={volume} onChange={e => setVolume(Number(e.target.value))} style={{'--range': `${volume}%`} as React.CSSProperties}/><span>{volume}%</span></div>
-            <div className="local-note"><Music2 size={16}/><span>{hasAudio ? 'Áudio local associado a esta faixa' : 'Associe um áudio local para reproduzir'}</span></div>
-            <input ref={fileRef} type="file" accept="audio/*" hidden onChange={e => importAudio(e.target.files?.[0])}/><button className="audio-import" onClick={() => fileRef.current?.click()}>Associar áudio local a esta faixa</button>
+            </>}<div className="local-note"><Music2 size={16}/><span>{hasAudio ? 'Áudio local associado a esta faixa' : 'Adicione um arquivo de áudio para começar'}</span></div>
+            <input ref={fileRef} type="file" accept="audio/*" hidden onChange={e => importAudio(e.target.files?.[0])}/><button className="audio-import" onClick={() => fileRef.current?.click()}>Adicionar áudio local</button>
             <audio ref={audioRef} src={audioUrls[song.id]} onTimeUpdate={e => setPosition(e.currentTarget.currentTime)} onLoadedMetadata={e => setAudioDuration(e.currentTarget.duration)} onEnded={e => handleAudioEnded(e.currentTarget)}/>
           </section>
           <section data-visual-mode="cinematic" className={`lyrics-column intro ${large ? "large-type" : ""}`}><div className="panel-heading"><h2>Letra e tradução</h2><div className="lyrics-actions"><button className="karaoke-toggle" aria-pressed={karaoke} onClick={() => setKaraoke(!karaoke)}>Karaokê</button><button aria-pressed={large} className="font-button" aria-label="Alterar tamanho da letra" title="Tamanho da letra" onClick={() => setLarge(!large)}>Aa</button></div></div>
-            <KaraokeDemo/>{youtubeSource && youtubePlayback.title && youtubePlayback.durationMs > 0 ? <SpotifyLyrics large={large} karaoke={karaoke} track={{ id: `${youtubeSource.id}:${chapterIndex}`, title: chapterTitle, artist: chapterArtist, album: '', image: `https://i.ytimg.com/vi/${youtubeSource.id}/hqdefault.jpg`, url: youtubeSource.url, progressMs: Math.max(0, youtubePlayback.positionMs - chapterStart), durationMs: chapterEnd - chapterStart, isPlaying: youtubePlayback.playing }} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : youtubeSource ? <p className="lyrics-message">Aguardando título e duração do vídeo para buscar a letra…</p> : spotifyTrack ? <SpotifyLyrics large={large} karaoke={karaoke} track={spotifyTrack} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : <>{karaoke && <p className="lyrics-message">{hasAudio ? "Preenchimento estimado por verso" : "Associe um áudio para sincronizar"}</p>}<div className="lyric-list" data-follow-playback={karaoke && hasAudio || undefined} ref={lyricList}>{lyrics.map((line, i) => <button tabIndex={karaoke && hasAudio && i !== current ? -1 : undefined} aria-current={i === current ? "true" : undefined} key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)} disabled={!hasAudio} title={!hasAudio ? 'Associe um áudio para buscar nesta letra' : undefined}><span className="lyric-time">{formatTime(line.at)}</span>{karaoke && hasAudio && i === current ? <KaraokeText line={line} position={position} end={lyrics[i+1]?.at ?? duration}/> : <strong>{line.original}</strong>}<em>{line.translation}</em></button>)}</div></>}
+            <KaraokeDemo/>{youtubeSource && youtubePlayback.title && youtubePlayback.durationMs > 0 ? <SpotifyLyrics large={large} karaoke={karaoke} track={{ id: `${youtubeSource.id}:${chapterIndex}`, title: chapterTitle, artist: chapterArtist, album: '', image: `https://i.ytimg.com/vi/${youtubeSource.id}/hqdefault.jpg`, url: youtubeSource.url, progressMs: Math.max(0, youtubePlayback.positionMs - chapterStart), durationMs: chapterEnd - chapterStart, isPlaying: youtubePlayback.playing }} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : youtubeSource ? <p className="lyrics-message">Aguardando título e duração do vídeo para buscar a letra…</p> : spotifyTrack ? <SpotifyLyrics large={large} karaoke={karaoke} track={spotifyTrack} refreshKey={spotifyRefresh} onLookup={setSpotifyLookup}/> : <>{!lyrics.length && <p className="lyrics-message">Sem letra disponível para o áudio local.</p>}{karaoke && lyrics.length > 0 && <p className="lyrics-message">{hasAudio ? "Preenchimento estimado por verso" : "Associe um áudio para sincronizar"}</p>}<div className="lyric-list" data-follow-playback={karaoke && hasAudio || undefined} ref={lyricList}>{lyrics.map((line, i) => <button tabIndex={karaoke && hasAudio && i !== current ? -1 : undefined} aria-current={i === current ? "true" : undefined} key={line.at} className={`lyric ${i === current ? 'active' : ''}`} onClick={() => seek(line.at)} disabled={!hasAudio} title={!hasAudio ? 'Associe um áudio para buscar nesta letra' : undefined}><span className="lyric-time">{formatTime(line.at)}</span>{karaoke && hasAudio && i === current ? <KaraokeText line={line} position={position} end={lyrics[i+1]?.at ?? duration}/> : <strong>{line.original}</strong>}<em>{line.translation}</em></button>)}</div></>}
           </section>
           <aside className="right-column intro"><ProxyCard title={spotifyTrack?.title ?? song.title} events={events} spotifyLookup={spotifyTrack ? spotifyLookup : undefined} onRefresh={consultAgain} onClear={clearCache}/><FocusSession enabled={focus} running={focusRunning} seconds={focusSeconds} minutes={focusMinutes} songTitle={songs.find(s => s.id === focusSong)?.title ?? song.title} playlistCount={focusPlaylist.length} blocked={blocked} onToggle={toggleFocus} onToggleRunning={toggleFocusRunning} onStop={stopFocus} onMinutes={updateFocusMinutes} onSettings={() => setShowRules(true)}/></aside>
         </div>

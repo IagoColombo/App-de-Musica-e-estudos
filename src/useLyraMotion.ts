@@ -19,12 +19,48 @@ export function usePageEntrance(scope: RefObject<HTMLElement | null>, page: stri
 }
 
 export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, playing: boolean, karaoke: boolean, large: boolean) {
+  const follow = useRef<(() => void) | null>(null);
+  useGSAP(() => {
+    const container = list.current;
+    if (!container) return;
+    let resume: number | undefined;
+    let tween: gsap.core.Tween | undefined;
+    const align = () => {
+      const active = container.querySelector<HTMLElement>('[aria-current="true"]');
+      if (!active || resume !== undefined || container.hasAttribute('data-follow-playback')) return;
+      const box = container.getBoundingClientRect();
+      const verse = active.getBoundingClientRect();
+      if (verse.top >= box.top + 24 && verse.bottom <= box.bottom - 24) return;
+      const target = container.scrollTop + verse.top - box.top - (container.clientHeight - active.offsetHeight) / 2;
+      tween?.kill();
+      tween = gsap.to(container, { scrollTo: { y: Math.max(0, target), autoKill: true },
+        duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : .35, ease: motion.ease });
+    };
+    const suspend = () => {
+      if (container.hasAttribute('data-follow-playback')) return;
+      tween?.kill();
+      window.clearTimeout(resume);
+      resume = window.setTimeout(() => { resume = undefined; align(); }, 4000);
+    };
+    const inputs = ['wheel', 'touchmove', 'pointerdown', 'keydown'];
+    inputs.forEach(type => container.addEventListener(type, suspend, { passive: true }));
+    follow.current = align;
+    return () => {
+      follow.current = null;
+      tween?.kill();
+      window.clearTimeout(resume);
+      inputs.forEach(type => container.removeEventListener(type, suspend));
+    };
+  }, { dependencies: [trackId, karaoke, large], revertOnUpdate: true });
   useGSAP(() => {
     const container = list.current;
     const active = container?.querySelector<HTMLElement>('[aria-current="true"]');
-    if (!container || !active || (!playing && !karaoke)) return;
-    const target = container.scrollTop + active.getBoundingClientRect().top - container.getBoundingClientRect().top
-      - (container.clientHeight - active.offsetHeight) / 2;
+    if (!container || !active) return;
+    if (!container.hasAttribute('data-follow-playback')) {
+      follow.current?.();
+      return;
+    }
+    container.scrollTop = 0;
     const cinematic = container.closest('[data-visual-mode="cinematic"], [data-visual-mode="immersive"]');
     const media = gsap.matchMedia();
     if (cinematic) media.add('(prefers-reduced-motion: no-preference)', () => {
@@ -35,13 +71,7 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
       timeline.from(split?.words ?? text.querySelectorAll('.sung-text'), { y: 16, opacity: 0, scale: .96, stagger: .035, duration: .45, ease: 'power3.out' });
       return () => { timeline.kill(); split?.revert(); };
     });
-    if (container.hasAttribute('data-follow-playback')) {
-      container.scrollTop = 0;
-      return () => media.revert();
-    }
-    const tween = gsap.to(container, { scrollTo: { y: Math.max(0, target), autoKill: true },
-      duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : .35, ease: motion.ease });
-    return () => { tween.kill(); media.revert(); };
+    return () => media.revert();
   }, { dependencies: [activeIndex, trackId, playing, karaoke, large], revertOnUpdate: true });
 }
 

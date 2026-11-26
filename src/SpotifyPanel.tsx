@@ -9,6 +9,7 @@ export function SpotifyPanel({ onConnectionChange, onSessionChange, onOpenLibrar
   const [error, setError] = useState('');
   const session = useRef<SpotifySession | null>(loadSpotifySession());
   const checking = useRef(false);
+  const refreshQueued = useRef(false);
 
   useEffect(() => { localStorage.setItem('lyra:spotifyClientId', clientId.trim()); }, [clientId]);
   useEffect(() => {
@@ -16,7 +17,8 @@ export function SpotifyPanel({ onConnectionChange, onSessionChange, onOpenLibrar
   }, []);
 
   async function refresh() {
-    if (!session.current || checking.current) return;
+    if (!session.current) return;
+    if (checking.current) { refreshQueued.current = true; return; }
     checking.current = true;
     const previous = loadSpotifySession() || session.current;
     session.current = previous;
@@ -36,7 +38,13 @@ export function SpotifyPanel({ onConnectionChange, onSessionChange, onOpenLibrar
         if (message.includes('autorização do Spotify expirou') || message.includes('sessão do Spotify expirou')) disconnect();
         setError(message);
       }
-    } finally { checking.current = false; }
+    } finally {
+      checking.current = false;
+      if (refreshQueued.current) {
+        refreshQueued.current = false;
+        void refresh();
+      }
+    }
   }
 
   useEffect(() => {
