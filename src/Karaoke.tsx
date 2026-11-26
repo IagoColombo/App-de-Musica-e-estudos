@@ -1,4 +1,6 @@
-import type { CSSProperties } from 'react';
+import { useLayoutEffect, useRef } from 'react';
+import { useGSAP } from '@gsap/react';
+import gsap from 'gsap';
 
 type Word = { at: number; text: string };
 export type TimedLine = { at: number | null; original: string; translation?: string; words?: Word[] };
@@ -31,11 +33,24 @@ export function parseSyncedLyrics(value: string): TimedLine[] {
 }
 
 export function KaraokeText({ line, position, end }: { line: TimedLine; position: number; end: number }) {
-  const fill = (start: number, stop: number): CSSProperties => ({
-    '--sung': Math.min(100, Math.max(0, (position - start) / Math.max(1, stop - start) * 100)) + '%',
-  } as CSSProperties);
-  const words = line.words;
-  return <strong>{words?.length && words[words.length - 1].at < end
-    ? words.map((word, i) => <span className="sung-text" key={word.at} style={fill(word.at, words[i + 1]?.at ?? end)}>{word.text}</span>)
-    : <span className="sung-text" style={fill(line.at ?? 0, end)}>{line.original}</span>}</strong>;
+  const root = useRef<HTMLElement>(null);
+  const timeline = useRef<gsap.core.Timeline | null>(null);
+  const timed = line.words?.length && line.words[line.words.length - 1].at < end;
+  const words = timed ? line.words! : [{ at: line.at ?? 0, text: line.original }];
+  const signature = JSON.stringify(words);
+  useGSAP(() => {
+    const elements = root.current?.querySelectorAll('.sung-text');
+    if (!elements) return;
+    const animation = gsap.timeline({ paused: true });
+    words.forEach((word, i) => animation.fromTo(elements[i], { '--sung': '0%' }, {
+      '--sung': '100%', duration: Math.max(.001, (words[i + 1]?.at ?? end) - word.at), ease: 'none',
+    }, Math.max(0, word.at - (line.at ?? 0))));
+    timeline.current = animation;
+    return () => { animation.kill(); timeline.current = null; };
+  }, { scope: root, dependencies: [signature, end, line.at], revertOnUpdate: true });
+  useLayoutEffect(() => {
+    timeline.current?.time(Math.max(0, position - (line.at ?? 0)), false);
+  }, [position, signature, end, line.at]);
+  return <strong ref={root}>{words.map((word, i) => <span className="sung-text" key={word.at}
+    data-singing={position >= word.at && position < (words[i + 1]?.at ?? end) ? 'true' : undefined}>{word.text}</span>)}</strong>;
 }

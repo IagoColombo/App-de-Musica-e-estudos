@@ -1,0 +1,27 @@
+from playwright.sync_api import sync_playwright
+with sync_playwright() as p:
+ b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ page=b.new_page(viewport={'width':390,'height':844})
+ errors=[]; page.on('pageerror',lambda e:errors.append(str(e)))
+ page.goto('http://127.0.0.1:5173')
+ page.get_by_label('Modo visual das letras').select_option('cinematic')
+ page.get_by_role('button',name='Demonstração',exact=True).click()
+ page.get_by_role('button',name='Reproduzir demonstração').click()
+ page.wait_for_timeout(300)
+ page.get_by_role('button',name='Pausar demonstração').click()
+ value=page.get_by_label('Tempo da demonstração').input_value()
+ page.wait_for_timeout(300); assert value==page.get_by_label('Tempo da demonstração').input_value()
+ page.get_by_label('Tempo da demonstração').fill('14')
+ assert 'estrelas' in page.locator('.demo-current').inner_text()
+ page.get_by_label('Tempo da demonstração').fill('2')
+ assert 'cidade' in page.locator('.demo-current').inner_text()
+ page.get_by_label('Modo visual das letras').select_option('immersive')
+ page.get_by_label('Modo visual das letras').select_option('normal')
+ page.reload(); assert page.get_by_label('Modo visual das letras').input_value()=='normal'
+ page.emulate_media(reduced_motion='reduce')
+ page.get_by_label('Modo visual das letras').select_option('cinematic')
+ page.get_by_role('button',name='Demonstração',exact=True).click()
+ page.get_by_role('button',name='Reproduzir demonstração').click()
+ page.get_by_role('button',name='Demonstração',exact=True).click()
+ assert not errors,errors
+ print('PASS modes, persistence, simulated pause/seek, reduced motion, close during playback')

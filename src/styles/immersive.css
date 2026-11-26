@@ -82,3 +82,27 @@
 }
 .lyrics-column:has(.karaoke-toggle[aria-pressed="true"]) :is(.lyric,.spotify-lyric):has(~ [aria-current="true"]) { opacity: .72; }
 .lyrics-column:has(.karaoke-toggle[aria-pressed="true"]) [aria-current="true"] ~ :is(.lyric,.spotify-lyric) { opacity: .86; }
+
+.visual-mode { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+.visual-mode select { color: inherit; background: #17282d; border: 1px solid #ffffff40; border-radius: 8px; padding: 7px; }
+.lyrics-column .panel-heading { flex-wrap: wrap; gap: 12px; }
+.lyrics-column[data-visual-mode="cinematic"], .lyrics-column[data-visual-mode="immersive"] {
+  background: radial-gradient(ellipse at 90% 10%, var(--album-glow), transparent 65%), radial-gradient(ellipse at bottom left, var(--album-deep), #0c151b 80%);
+  padding: clamp(16px, 3vw, 32px); border-radius: 24px;
+}
+.lyrics-column[data-visual-mode="immersive"] { position: fixed; inset: 12px; z-index: 100; overflow: auto; }
+.lyrics-column[data-visual-mode="immersive"] :is(.lyric-list,.spotify-lyrics) { height: 65vh; max-width: 1000px; margin: auto; }
+.lyrics-column[data-visual-mode="cinematic"] .active strong,
+.lyrics-column[data-visual-mode="immersive"] .active strong { text-shadow: 0 0 20px var(--album-glow); }
+.karaoke-demo { padding: 8px 0; font-size: 13px; }
+.karaoke-demo button { color: inherit; background: #ffffff12; border: 1px solid #ffffff40; padding: 8px 12px; border-radius: 8px; }
+.demo-current { font-size: clamp(24px,4vw,48px); }
+.demo-current span { display: inline-block; white-space: pre; }
+@media (prefers-reduced-motion: reduce) {
+ .lyrics-column[data-visual-mode] { background: #101c22; }
+ .lyrics-column[data-visual-mode] .active strong { text-shadow: none; }
+}
+.lyrics-column .sung-text { transition: none; }
+[data-visual-mode="cinematic"] .sung-text[data-singing="true"],
+[data-visual-mode="immersive"] .sung-text[data-singing="true"] { text-shadow: 0 0 14px var(--album-glow); }
+@media (prefers-reduced-motion: reduce) { .lyrics-column .sung-text[data-singing] { text-shadow: none; } }
