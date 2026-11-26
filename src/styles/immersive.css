@@ -580,6 +580,7 @@
 }
 .youtube-volume-menu[data-open] {
   width: min(100%, 360px);
+  justify-self: center;
   border-color: var(--album-accent);
 }
 .youtube-main-player .youtube-transport .youtube-volume-toggle {
@@ -597,8 +598,11 @@
 .youtube-volume-menu:hover { border-color: var(--album-accent); }
 .youtube-volume-toggle span { color: var(--album-accent); }
 .youtube-main-player .youtube-volume-menu .youtube-volume-controls {
+  display: flex;
   flex: 1;
+  width: auto;
   max-width: none;
+  margin: 0;
   padding-inline-end: 10px;
 }
 .youtube-main-player .youtube-volume-menu .youtube-volume-controls[hidden] { display: none; }
@@ -609,6 +613,28 @@
   border: 0;
 }
 .youtube-main-player[data-minimized] .youtube-volume-menu { grid-column: 1 / -1; }
+
+@container (min-width: 420px) {
+  .youtube-main-player:not([data-minimized]) .youtube-transport:has(.youtube-volume-menu[data-open]) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 216px);
+    grid-template-areas:
+      "progress volume"
+      "play play";
+  }
+  .youtube-main-player:not([data-minimized]) .youtube-transport:has(.youtube-volume-menu[data-open]) > .youtube-timeline {
+    grid-area: progress;
+  }
+  .youtube-main-player:not([data-minimized]) .youtube-transport:has(.youtube-volume-menu[data-open]) > .youtube-play {
+    grid-area: play;
+  }
+  .youtube-main-player:not([data-minimized]) .youtube-volume-menu[data-open] {
+    grid-area: volume;
+    width: 100%;
+  }
+  .youtube-main-player:not([data-minimized]) .youtube-volume-menu[data-open] .youtube-volume-toggle svg {
+    display: none;
+  }
+}
 
 .modal.focus-settings-panel {
   display: grid;
