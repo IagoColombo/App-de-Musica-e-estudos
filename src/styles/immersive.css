@@ -150,6 +150,11 @@
 }
 
 .lyrics-column :is(.lyric-list, .spotify-lyrics)[data-follow-playback] {
-  /* GSAP can still center the active verse through scrollTop. */
   overflow: hidden;
+  padding-block-start: 0;
+  mask-image: linear-gradient(to bottom, black 89%, transparent);
+}
+
+[data-follow-playback] > :has(~ [aria-current="true"]) {
+  display: none;
 }

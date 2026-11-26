@@ -35,6 +35,10 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
       timeline.from(split?.words ?? text.querySelectorAll('.sung-text'), { y: 16, opacity: 0, scale: .96, stagger: .035, duration: .45, ease: 'power3.out' });
       return () => { timeline.kill(); split?.revert(); };
     });
+    if (container.hasAttribute('data-follow-playback')) {
+      container.scrollTop = 0;
+      return () => media.revert();
+    }
     const tween = gsap.to(container, { scrollTo: { y: Math.max(0, target), autoKill: true },
       duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : .35, ease: motion.ease });
     return () => { tween.kill(); media.revert(); };
