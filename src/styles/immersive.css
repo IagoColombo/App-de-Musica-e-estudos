@@ -106,3 +106,18 @@
 [data-visual-mode="cinematic"] .sung-text[data-singing="true"],
 [data-visual-mode="immersive"] .sung-text[data-singing="true"] { text-shadow: 0 0 14px var(--album-glow); }
 @media (prefers-reduced-motion: reduce) { .lyrics-column .sung-text[data-singing] { text-shadow: none; } }
+
+
+/* O destaque do verso acompanha a paleta, sem painel de seleção. */
+.main-area .lyrics-column[data-visual-mode="cinematic"] :is(.lyric, .spotify-lyric),
+.main-area .lyrics-column[data-visual-mode="cinematic"] :is(.lyric, .spotify-lyric):hover {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+.main-area .lyrics-column[data-visual-mode="cinematic"] .active strong {
+  color: var(--album-accent);
+}
+.lyrics-column .sung-text {
+  background-image: linear-gradient(90deg, var(--album-accent) var(--sung), #a7b9bf var(--sung));
+}

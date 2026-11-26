@@ -3,18 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 
-export function CinematicControls() {
-  const [mode, setMode] = useState(() => localStorage.getItem('lyra:visualMode') || 'normal');
-  useEffect(() => {
-    document.querySelector('.lyrics-column')?.setAttribute('data-visual-mode', mode);
-    localStorage.setItem('lyra:visualMode', mode);
-    return () => document.querySelector('.lyrics-column')?.removeAttribute('data-visual-mode');
-  }, [mode]);
-  return <label className="visual-mode">Visual <select aria-label="Modo visual das letras" value={mode} onChange={event => setMode(event.target.value)}>
-    <option value="normal">Normal</option><option value="cinematic">Cinematic</option><option value="immersive">Immersive</option>
-  </select></label>;
-}
-
 const demoLines = ['A cidade acende devagar', 'Cada luz encontra seu lugar', 'Entre as estrelas e o chão', 'A música conduz o coração'];
 
 export function KaraokeDemo() {

@@ -27,3 +27,7 @@ Reprodução real autenticada no Spotify, mudança externa de dispositivo, valid
 ## Arquivos
 
 src/CinematicKaraoke.tsx, src/Karaoke.tsx, src/App.tsx, src/useLyraMotion.ts, src/styles/immersive.css, tests/cinematic_browser.py e este documento.
+
+## Ajuste após avaliação visual
+
+Cinematic tornou-se o visual único da seção. O seletor foi removido e preferências antigas de modo não alteram a apresentação. O verso ativo usa a cor da paleta e preenchimento na tipografia, com fundo e borda de seleção transparentes. Build e teste Chromium atualizados passaram.
