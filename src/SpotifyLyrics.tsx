@@ -66,7 +66,7 @@ export function usePlaybackProgress(track: SpotifyTrack, intervalMs = 250) {
   return progressMs;
 }
 
-export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: { karaoke: boolean; large: boolean; track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
+export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke }: { karaoke: boolean; track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
   const [lines, setLines] = useState<LyricLine[]>([]);
   const [status, setStatus] = useState('Buscando letra…');
   const [translationStatus, setTranslationStatus] = useState('');
@@ -142,7 +142,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: {
   const activeEnd = (index: number) => lines[index + 1]?.at ?? track.durationMs;
   const synchronized = lines.some(line => line.at !== null);
   const activeIndex = synchronized ? lines.reduce((index, line, i) => line.at !== null && progressMs >= line.at ? i : index, -1) : -1;
-  useLyricsAnimation(listRef, activeIndex, track.id, large);
+  useLyricsAnimation(listRef, activeIndex, track.id);
 
   return <div className="spotify-lyrics-wrap">
 
