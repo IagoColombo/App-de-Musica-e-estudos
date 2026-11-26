@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { SpotifyTrack } from './spotify';
 import { useLyricsAnimation } from './useLyraMotion';
 
-type LyricLine = { at: number | null; original: string; translation?: string };
+import { KaraokeText, parseSyncedLyrics, type TimedLine as LyricLine } from './Karaoke';
 type LrcLibResult = { syncedLyrics?: string | null; plainLyrics?: string | null };
 export type SpotifyLookup = { kind: 'miss' | 'error'; durationMs: number; at: string };
 
@@ -16,15 +16,6 @@ function savedTranslations(): [string, string][] {
 const translationCache = new Map<string, string>(savedTranslations());
 let memoryCoolingUntil = 0;
 export function clearSpotifyTranslationCache() { translationCache.clear(); localStorage.removeItem(CACHE_KEY); }
-
-export function parseSyncedLyrics(value: string): LyricLine[] {
-  return value.split(/\r?\n/).flatMap(raw => {
-    const match = raw.match(/^\[(\d+):(\d{2})(?:\.(\d{1,3}))?\]\s*(.*)$/);
-    if (!match || !match[4].trim()) return [];
-    const fraction = Number((match[3] || '').padEnd(3, '0'));
-    return [{ at: (Number(match[1]) * 60 + Number(match[2])) * 1000 + fraction, original: match[4].trim() }];
-  });
-}
 
 async function translateLine(original: string, signal: AbortSignal): Promise<string> {
   const cached = translationCache.get(original);
@@ -56,7 +47,7 @@ async function translateLine(original: string, signal: AbortSignal): Promise<str
   return translation;
 }
 
-export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
+export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: { karaoke: boolean; large: boolean; track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
   const [lines, setLines] = useState<LyricLine[]>([]);
   const [status, setStatus] = useState('Buscando letra…');
   const [translationStatus, setTranslationStatus] = useState('');
@@ -136,18 +127,20 @@ export function SpotifyLyrics({ track, refreshKey, onLookup }: { track: SpotifyT
     return () => controller.abort();
   }, [track.id, track.title, track.artist, track.album, track.durationMs, refreshKey, onLookup]);
 
+  const activeEnd = (index: number) => lines[index + 1]?.at ?? track.durationMs;
   const synchronized = lines.some(line => line.at !== null);
   const activeIndex = synchronized ? lines.reduce((index, line, i) => line.at !== null && progressMs >= line.at ? i : index, -1) : -1;
-  useLyricsAnimation(listRef, activeIndex, track.id, track.isPlaying);
+  useLyricsAnimation(listRef, activeIndex, track.id, track.isPlaying, karaoke, large);
 
   return <div className="spotify-lyrics-wrap">
 
+    {karaoke && lines.length > 0 && <p className="lyrics-message">{synchronized ? (lines[activeIndex]?.words?.every(word => word.at < activeEnd(activeIndex)) ? "Marcação por palavra" : "Preenchimento estimado por verso") : "Sem marcação de tempo · letra tradicional"}</p>}
     {status && <p className="lyrics-message" role="status">{status}</p>}
     {translationStatus && translationStatus !== 'Traduzindo versos…' && <p className="lyrics-message" role="status">{translationStatus}</p>}
     <div className="spotify-lyrics" ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
-      <strong>{line.original}</strong>
+      {karaoke && index === activeIndex ? <KaraokeText line={line} position={progressMs} end={activeEnd(index)}/> : <strong>{line.original}</strong>}
       <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>
     </div>)}</div>
-    {lines.length > 0 && <span className="sr-only">{synchronized ? 'Letra sincronizada com o Spotify.' : 'Esta faixa só tem letra sem tempos.'} {translationStatus}</span>}
+    {lines.length > 0 && <span className="sr-only">{synchronized ? 'Letra sincronizada com a reprodução.' : 'Esta faixa só tem letra sem tempos.'} {translationStatus}</span>}
   </div>;
 }

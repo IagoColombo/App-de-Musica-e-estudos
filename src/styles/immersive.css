@@ -39,3 +39,46 @@
 @media (max-width: 1050px) { .workspace:has(.youtube-main-player) { grid-template-columns: minmax(0, 1fr); } .workspace:has(.youtube-main-player) .right-column { grid-column: auto; } }
 @media (max-width: 600px) { .youtube-transport { flex-wrap: wrap; } .youtube-transport input:not(.youtube-volume) { flex-basis: 45%; } .youtube-video { min-height: 200px; } }
 @media (prefers-reduced-motion: reduce) { .collection-list button, .library-track, .search-results button, .nav-item, .controls button, .youtube-transport button, .player-progress input, .youtube-transport input { transition: none; } .collection-list button:hover, .library-track:hover, .search-results button:hover, .controls button:hover:not(:disabled), .youtube-transport button:hover:not(:disabled) { transform: none; } }
+
+/* Premium Motion Beta 0.1 */
+.controls button:hover:not(:disabled), .controls button:active:not(:disabled),
+.youtube-transport button:hover:not(:disabled), .youtube-transport button:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+.karaoke-toggle {
+  border: 1px solid currentColor; border-radius: 99px; padding: .35rem .75rem;
+  min-height: 32px; background: transparent; color: inherit; cursor: pointer;
+}
+.karaoke-toggle[aria-pressed="true"] { background: var(--canvas-text, white); color: #102023; }
+.lyrics-column .sung-text {
+  background: linear-gradient(90deg, var(--canvas-text, white) var(--sung), #a7b9bf var(--sung));
+  color: transparent; background-clip: text; -webkit-background-clip: text;
+}
+.lyric-list, .spotify-lyrics { scroll-behavior: auto; }
+.youtube-main-player {
+  align-self: start; border-radius: 22px; padding: clamp(16px, 2vw, 28px);
+  background: radial-gradient(ellipse at top right, var(--album-glow), transparent 70%), #10191e;
+  backdrop-filter: none; box-shadow: 0 12px 30px #0003;
+}
+.youtube-video { border-radius: 12px; overflow: hidden; }
+.youtube-main-player h2 { margin: 18px 0 4px; }
+.youtube-main-player .youtube-artist { margin: 0; color: #bfccd0; }
+.youtube-transport { margin-top: 16px; padding-top: 14px; border-top: 1px solid #ffffff24; }
+.youtube-heading button, .youtube-transport button { border-radius: 50%; min-width: 40px; min-height: 40px; display: grid; place-items: center; }
+.youtube-main-player button:disabled { opacity: .5; cursor: default; }
+.youtube-main-player input, .volume input { min-height: 24px; }
+:where(.youtube-main-player, .lyrics-column, .player-column) :is(input,button,a):focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (forced-colors: active) { .lyrics-column .sung-text { color: CanvasText; } }
+@property --sung {
+  syntax: '<percentage>';
+  inherits: false;
+  initial-value: 0%;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .sung-text { transition: --sung .16s linear; }
+  .volume input, .youtube-volume { transition: opacity .15s ease; }
+  .volume input:active, .youtube-volume:active { opacity: .84; }
+}
+.lyrics-column:has(.karaoke-toggle[aria-pressed="true"]) :is(.lyric,.spotify-lyric):has(~ [aria-current="true"]) { opacity: .72; }
+.lyrics-column:has(.karaoke-toggle[aria-pressed="true"]) [aria-current="true"] ~ :is(.lyric,.spotify-lyric) { opacity: .86; }

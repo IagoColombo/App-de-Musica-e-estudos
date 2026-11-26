@@ -18,39 +18,50 @@ export function usePageEntrance(scope: RefObject<HTMLElement | null>, page: stri
   }, { scope, dependencies: [page, trackId], revertOnUpdate: true });
 }
 
-export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, playing: boolean) {
+export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, playing: boolean, karaoke: boolean, large: boolean) {
   useGSAP(() => {
     const container = list.current;
-    if (!container) return;
-    const mm = gsap.matchMedia();
-    mm.add('(prefers-reduced-motion: no-preference)', () => {
-      const active = activeIndex >= 0
-        ? container.querySelector<HTMLElement>(`[aria-current="true"]`)
-        : null;
-      if (!active) return;
-      // ScrollToPlugin accepts an absolute scrollTop for an element container.
-      // Using the element itself here made the browser calculate the page offset
-      // and could fight the native `scroll-behavior: smooth` rule.
-      const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
-      const centeredTop = active.offsetTop - (container.clientHeight - active.offsetHeight) / 2;
-      const targetTop = Math.min(maxScroll, Math.max(0, centeredTop));
-      gsap.killTweensOf(container);
-      gsap.fromTo(active, { opacity: .5, scale: .97, y: 12 }, { opacity: 1, scale: 1, y: 0, duration: motion.standard, ease: motion.ease });
-      if (playing) gsap.to(container, { scrollTo: { y: targetTop, autoKill: false }, duration: .65, ease: motion.ease, overwrite: true });
+    const active = container?.querySelector<HTMLElement>('[aria-current="true"]');
+    if (!container || !active || (!playing && !karaoke)) return;
+    const target = container.scrollTop + active.getBoundingClientRect().top - container.getBoundingClientRect().top
+      - (container.clientHeight - active.offsetHeight) / 2;
+    const tween = gsap.to(container, { scrollTo: { y: Math.max(0, target), autoKill: true },
+      duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : .35, ease: motion.ease });
+    return () => { tween.kill(); };
+  }, { dependencies: [activeIndex, trackId, playing, karaoke, large], revertOnUpdate: true });
+}
+
+export function useButtonMotion(scope: RefObject<HTMLElement | null>) {
+  useGSAP(() => {
+    const root = scope.current;
+    if (!root) return;
+    const media = gsap.matchMedia();
+    media.add('(prefers-reduced-motion: no-preference)', () => {
+      const selector = '.controls button, .spotify-remote-buttons button, .song-title button, .youtube-main-player button, .lyrics-column .panel-heading button';
+      const tweens = new Map<Element, gsap.core.Tween>();
+      const animate = (event: Event) => {
+        const button = event.target instanceof Element && event.target.closest<HTMLButtonElement>(selector);
+        if (!button || button.disabled) return;
+        if (event instanceof PointerEvent && event.relatedTarget instanceof Node && button.contains(event.relatedTarget)) return;
+        const icon = button.querySelector('svg') ?? button;
+        tweens.get(button)?.kill();
+        const complete = () => { tweens.delete(button); };
+        const tween = event.type === 'click'
+          ? gsap.fromTo(icon, { scale: .86, opacity: .72 }, { scale: 1, opacity: 1, duration: .22, clearProps: 'transform,opacity', onComplete: complete })
+          : gsap.to(icon, { scale: event.type === 'pointerdown' ? .94 : event.type === 'pointerover' ? 1.06 : 1,
+              duration: .14, onComplete: complete });
+        tweens.set(button, tween);
+      };
+      const events = ['pointerover', 'pointerout', 'pointerdown', 'pointerup', 'pointercancel', 'click'];
+      events.forEach(type => root.addEventListener(type, animate));
+      return () => {
+        events.forEach(type => root.removeEventListener(type, animate));
+        tweens.forEach(tween => tween.kill());
+        root.querySelectorAll(selector).forEach(button => gsap.set(button.querySelector('svg') ?? button, { clearProps: 'transform,opacity' }));
+      };
     });
-    mm.add('(prefers-reduced-motion: reduce)', () => {
-      const active = activeIndex >= 0 ? container.querySelector<HTMLElement>('[aria-current="true"]') : null;
-      if (active && playing) {
-        const maxScroll = Math.max(0, container.scrollHeight - container.clientHeight);
-        const centeredTop = active.offsetTop - (container.clientHeight - active.offsetHeight) / 2;
-        container.scrollTop = Math.min(maxScroll, Math.max(0, centeredTop));
-      }
-    });
-    return () => {
-      gsap.killTweensOf(container);
-      mm.revert();
-    };
-  }, { scope: list, dependencies: [activeIndex, trackId, playing], revertOnUpdate: false });
+    return () => media.revert();
+  }, { scope });
 }
 
 export function useFocusModeTimeline(scope: RefObject<HTMLElement | null>, enabled: boolean) {
