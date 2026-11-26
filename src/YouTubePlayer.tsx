@@ -67,7 +67,15 @@ export function YouTubePlayer({ source, active, onClose, onPlayback }: { source:
           onError: (event: { data: number }) => {
             if (cancelled) return;
             setReady(false); setPlaying(false);
-            setError([101, 150].includes(event.data) ? 'O canal bloqueou a reprodução incorporada.' : 'Vídeo indisponível neste player.');
+            const messages: Record<number, string> = {
+              2: 'O YouTube recebeu um identificador de vídeo inválido.',
+              5: 'O navegador não conseguiu reproduzir este vídeo.',
+              100: 'Este vídeo foi removido, é privado ou está indisponível.',
+              101: 'O YouTube recusou a reprodução incorporada deste vídeo.',
+              150: 'O YouTube recusou a reprodução incorporada deste vídeo.',
+              153: 'O YouTube não recebeu a identificação de origem. Verifique as configurações de privacidade e extensões do navegador.',
+            };
+            setError(`${messages[event.data] || 'Falha ao carregar o vídeo.'} (YouTube ${event.data})`);
           },
         },
       });
