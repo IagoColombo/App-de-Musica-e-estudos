@@ -176,3 +176,29 @@
   .library-layout { grid-template-columns: minmax(0, 1fr); }
   .library-track { column-gap: 8px; }
 }
+
+.right-column :is(.proxy-card, .focus-card) { border-radius: 18px; }
+.proxy-card .signal-module, .focus-card .focus-timer { border-radius: 12px; }
+.proxy-card .proxy-actions button { border-radius: 8px; }
+
+.focus-card .focus-top { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.focus-card .focus-title { min-width: 0; }
+.focus-card .focus-title .focus-icon { flex-shrink: 0; }
+.focus-card .focus-title h3 small { display: block; margin-top: 4px; }
+.focus-card .focus-title h3 small:empty { display: none; }
+.focus-card .focus-playlist > span:nth-child(2) { flex: 1; min-width: 0; }
+.focus-card .focus-playlist > svg { flex-shrink: 0; }
+
+.focus-card .focus-timer { align-items: center; gap: 12px; }
+.focus-card .focus-timer .on-air {
+  font: 500 13px/1.3 var(--font-body);
+  margin-bottom: 4px;
+}
+.focus-card .focus-transport {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+}
+.focus-card .focus-timer .focus-transport button { width: 36px; height: 36px; }
+.focus-card .focus-timer .timer-stop { border-radius: 9px; }
