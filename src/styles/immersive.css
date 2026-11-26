@@ -148,3 +148,8 @@
   .youtube-transport { grid-template-columns: auto minmax(0, 1fr); }
   .youtube-volume-controls { grid-column: 2; max-width: 140px; }
 }
+
+.lyrics-column :is(.lyric-list, .spotify-lyrics)[data-follow-playback] {
+  /* GSAP can still center the active verse through scrollTop. */
+  overflow: hidden;
+}

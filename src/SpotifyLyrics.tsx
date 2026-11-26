@@ -137,7 +137,7 @@ export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: {
     {karaoke && lines.length > 0 && <p className="lyrics-message">{synchronized ? (lines[activeIndex]?.words?.every(word => word.at < activeEnd(activeIndex)) ? "Marcação por palavra" : "Preenchimento estimado por verso") : "Sem marcação de tempo · letra tradicional"}</p>}
     {status && <p className="lyrics-message" role="status">{status}</p>}
     {translationStatus && translationStatus !== 'Traduzindo versos…' && <p className="lyrics-message" role="status">{translationStatus}</p>}
-    <div className="spotify-lyrics" ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
+    <div className="spotify-lyrics" data-follow-playback={karaoke && synchronized || undefined} ref={listRef}>{lines.map((line, index) => <div key={`${index}-${line.at ?? 'plain'}`} className={`spotify-lyric ${index === activeIndex ? 'active' : ''}`} aria-current={index === activeIndex ? 'true' : undefined}>
       {karaoke && index === activeIndex ? <KaraokeText line={line} position={progressMs} end={activeEnd(index)}/> : <strong>{line.original}</strong>}
       <em>{line.translation || (translationStatus === 'Traduzindo versos…' ? 'Traduzindo…' : 'Tradução indisponível')}</em>
     </div>)}</div>
