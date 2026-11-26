@@ -37,19 +37,33 @@ html { scroll-padding-top: calc(var(--topbar-height) + var(--space-4)); }
   }
 }
 
-/* Keep the focus indicator around the whole pill, including its icon. */
-.main-area > .topbar .search:focus-within {
-  border-color: var(--color-focus);
+/* Set the search panel apart from the page while its results are open. */
+.main-area:has(> .topbar .search-results)::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 11;
+  pointer-events: none;
+  background: rgb(7 16 21 / 24%);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
 }
 
-.main-area > .topbar .search:has(input:focus-visible) {
-  outline: 2px solid var(--color-focus);
-  outline-offset: 2px;
+.main-area > .topbar .search:focus-within {
+  border-color: color-mix(in srgb, var(--color-focus) 55%, #42636b);
 }
 
 @supports selector(:has(input:focus-visible)) {
+  .main-area > .topbar .search:has(input:focus-visible) {
+    border-color: var(--color-focus);
+  }
   .main-area > .topbar .search input:focus-visible {
     outline: none;
+  }
+  @media (forced-colors: active) {
+    .main-area > .topbar .search:has(input:focus-visible) {
+      outline: 1px solid Highlight;
+    }
   }
 }
 
