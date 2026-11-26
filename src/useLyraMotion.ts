@@ -54,6 +54,30 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
   useGSAP(() => { follow.current?.(); }, { dependencies: [activeIndex, trackId, large, viewKey] });
 }
 
+export function useBrandPlayback(mark: RefObject<HTMLSpanElement | null>, playing: boolean) {
+  useGSAP(() => {
+    const bars = mark.current?.querySelectorAll('i');
+    if (!playing || !bars?.length) return;
+
+    const media = gsap.matchMedia();
+    media.add('(prefers-reduced-motion: no-preference)', () => {
+      const durations = [.37, .45, .33, .49, .4];
+      bars.forEach((bar, index) => {
+        gsap.to(bar, {
+          scaleY: index % 2 === 0 ? .45 : 1.18,
+          transformOrigin: 'center',
+          duration: durations[index % durations.length],
+          delay: index * .07,
+          ease: 'sine.inOut',
+          repeat: -1,
+          yoyo: true,
+        });
+      });
+    });
+    return () => media.revert();
+  }, { scope: mark, dependencies: [playing], revertOnUpdate: true });
+}
+
 export function useButtonMotion(scope: RefObject<HTMLElement | null>) {
   useGSAP(() => {
     const root = scope.current;
