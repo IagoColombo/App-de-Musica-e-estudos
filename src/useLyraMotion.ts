@@ -28,10 +28,10 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
     const align = () => {
       const active = container.querySelector<HTMLElement>('[aria-current="true"]');
       if (!active || resume !== undefined || container.hasAttribute('data-follow-playback')) return;
-      const box = container.getBoundingClientRect();
-      const verse = active.getBoundingClientRect();
-      if (verse.top >= box.top + 24 && verse.bottom <= box.bottom - 24) return;
-      const target = container.scrollTop + verse.top - box.top - (container.clientHeight - active.offsetHeight) / 2;
+      const topInset = parseFloat(getComputedStyle(container).paddingTop);
+      const target = container.scrollTop + active.getBoundingClientRect().top
+        - container.getBoundingClientRect().top - container.clientTop - topInset;
+      if (Math.abs(target - container.scrollTop) < 1) return;
       tween?.kill();
       tween = gsap.to(container, { scrollTo: { y: Math.max(0, target), autoKill: true },
         duration: matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : .35, ease: motion.ease });
