@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { check, type Update } from '@tauri-apps/plugin-updater';
 import { relaunch } from '@tauri-apps/plugin-process';
 
-export function UpdateBanner() {
+export function UpdateBanner({ onAvailable }: { onAvailable: (version: string | null) => void }) {
   const [update, setUpdate] = useState<Update | null>(null);
   const [installing, setInstalling] = useState(false);
   const [message, setMessage] = useState('');
@@ -13,13 +13,13 @@ export function UpdateBanner() {
     const inspect = async () => {
       try {
         const found = await check();
-        if (active) setUpdate(found);
+        if (active) { setUpdate(found); onAvailable(found?.version ?? null); }
       } catch { /* The app remains usable while offline. Try again at the next interval. */ }
     };
     void inspect();
     const timer = window.setInterval(inspect, 60 * 60 * 1000);
     return () => { active = false; window.clearInterval(timer); };
-  }, []);
+  }, [onAvailable]);
 
   async function install() {
     if (!update || installing) return;

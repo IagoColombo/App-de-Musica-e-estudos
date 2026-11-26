@@ -158,3 +158,21 @@
 [data-follow-playback] > :has(~ [aria-current="true"]) {
   display: none;
 }
+
+.main-area .spotify-main-player {
+  padding: clamp(16px, 2vw, 28px);
+  border-radius: 22px;
+  background: radial-gradient(ellipse at top right, var(--album-glow), transparent 70%), #10191e;
+}
+.spotify-main-player > img { border-radius: 12px; }
+.spotify-main-player .spotify-remote { display: grid; gap: 12px; }
+.spotify-remote .youtube-timeline input { flex: 1; min-width: 0; accent-color: var(--album-accent); }
+.library-layout > div, .library-playlist, .library-track { min-width: 0; }
+.library-section-head { flex-wrap: wrap; gap: 8px; }
+.library-track-copy, .playlist-copy { min-width: 0; }
+.library-track-copy small, .playlist-copy small { overflow-wrap: anywhere; }
+.library-empty-state { padding: 12px; color: var(--canvas-muted); }
+@media (max-width: 700px) {
+  .library-layout { grid-template-columns: minmax(0, 1fr); }
+  .library-track { column-gap: 8px; }
+}

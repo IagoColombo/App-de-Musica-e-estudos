@@ -47,20 +47,27 @@ async function translateLine(original: string, signal: AbortSignal): Promise<str
   return translation;
 }
 
-export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: { karaoke: boolean; large: boolean; track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
-  const [lines, setLines] = useState<LyricLine[]>([]);
-  const [status, setStatus] = useState('Buscando letra…');
-  const [translationStatus, setTranslationStatus] = useState('');
+export function usePlaybackProgress(track: SpotifyTrack) {
   const [progressMs, setProgressMs] = useState(track.progressMs);
-  const listRef = useRef<HTMLDivElement>(null);
+
 
   useEffect(() => {
     setProgressMs(track.progressMs);
     if (!track.isPlaying) return;
-    const started = Date.now();
-    const timer = window.setInterval(() => setProgressMs(Math.min(track.durationMs, track.progressMs + Date.now() - started)), 250);
+    const started = track.sampledAt ?? performance.now();
+    const timer = window.setInterval(() => setProgressMs(Math.min(track.durationMs, track.progressMs + performance.now() - started)), 250);
     return () => window.clearInterval(timer);
-  }, [track.id, track.progressMs, track.durationMs, track.isPlaying]);
+  }, [track.id, track.progressMs, track.durationMs, track.isPlaying, track.sampledAt]);
+
+  return progressMs;
+}
+
+export function SpotifyLyrics({ track, refreshKey, onLookup, karaoke, large }: { karaoke: boolean; large: boolean; track: SpotifyTrack; refreshKey: number; onLookup: (event: SpotifyLookup) => void }) {
+  const [lines, setLines] = useState<LyricLine[]>([]);
+  const [status, setStatus] = useState('Buscando letra…');
+  const [translationStatus, setTranslationStatus] = useState('');
+  const progressMs = usePlaybackProgress(track);
+  const listRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const controller = new AbortController();

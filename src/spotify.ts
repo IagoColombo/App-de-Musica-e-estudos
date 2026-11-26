@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core';
 type Callback = { redirectUri: string; query: string };
 type TokenResponse = { access_token: string; refresh_token?: string; expires_in: number; scope?: string };
 export type SpotifySession = { clientId: string; accessToken: string; refreshToken: string; expiresAt: number; scopes: string };
-export type SpotifyTrack = { id: string; title: string; artist: string; album: string; image?: string; url: string; progressMs: number; durationMs: number; isPlaying: boolean };
+export type SpotifyTrack = { id: string; title: string; artist: string; album: string; image?: string; url: string; progressMs: number; durationMs: number; isPlaying: boolean; sampledAt?: number; volumePercent?: number; supportsVolume?: boolean; shuffle?: boolean; disallows?: Record<string, boolean> };
 export type SpotifyPlaylist = { id: string; name: string; image?: string; url: string; total: number; owner: string; playableItems: boolean };
 export type SpotifyLibraryTrack = { id: string; uri: string; title: string; artist: string; album: string; image?: string; url: string; durationMs: number };
 export type SpotifyPage<T> = { items: T[]; total: number; next: boolean };
@@ -86,12 +86,12 @@ export async function spotifyRequest(session: SpotifySession, path: string, init
 }
 
 export async function getSpotifyTrack(session: SpotifySession): Promise<{ session: SpotifySession; track: SpotifyTrack | null }> {
-  const { session: activeSession, response } = await spotifyRequest(session, '/me/player/currently-playing');
+  const { session: activeSession, response } = await spotifyRequest(session, session.scopes.split(' ').includes('user-read-playback-state') ? '/me/player' : '/me/player/currently-playing');
   if (response.status === 204) return { session: activeSession, track: null };
   if (response.status === 403) throw new Error('A conta ou o aplicativo Spotify não tem acesso a esta API.');
   if (!response.ok) throw new Error(`Falha ao consultar o Spotify (${response.status}).`);
   const data = await response.json();
-  if (data.currently_playing_type !== 'track' || !data.item) return { session: activeSession, track: null };
+  if (!data.item || (data.currently_playing_type ?? data.item.type) !== 'track') return { session: activeSession, track: null };
   return { session: activeSession, track: {
     id: data.item.id,
     title: data.item.name,
@@ -102,6 +102,11 @@ export async function getSpotifyTrack(session: SpotifySession): Promise<{ sessio
     progressMs: data.progress_ms || 0,
     durationMs: data.item.duration_ms || 0,
     isPlaying: Boolean(data.is_playing),
+    sampledAt: performance.now(),
+    volumePercent: data.device?.volume_percent ?? undefined,
+    supportsVolume: data.device?.supports_volume,
+    shuffle: data.shuffle_state,
+    disallows: data.actions?.disallows,
   } };
 }
 
