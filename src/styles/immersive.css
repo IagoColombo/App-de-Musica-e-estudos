@@ -419,7 +419,6 @@
 
 /* Match the full player’s control order and alignment to the Spotify player. */
 .youtube-main-player:not([data-minimized]) .youtube-transport {
-  grid-template-columns: minmax(0, 1fr);
   justify-items: stretch;
   gap: 12px;
 }
@@ -587,19 +586,23 @@
 .youtube-volume-controls input { margin: 0; }
 .youtube-volume-value { text-align: end; font-variant-numeric: tabular-nums; }
 
-@container (min-width: 420px) {
-  .youtube-main-player:not([data-minimized]) .youtube-transport {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 216px);
-    grid-template-areas:
-      "progress volume"
-      "play play";
-  }
-  .youtube-main-player:not([data-minimized]) .youtube-timeline { grid-area: progress; }
-  .youtube-main-player:not([data-minimized]) .youtube-play { grid-area: play; }
-  .youtube-main-player:not([data-minimized]) .youtube-transport > .youtube-volume-controls {
-    grid-area: volume;
-    width: 100%;
-  }
+.youtube-main-player .youtube-transport {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 42%);
+  grid-template-areas:
+    "progress volume"
+    "play play";
+  column-gap: clamp(6px, 2cqi, 12px);
+}
+.youtube-main-player .youtube-transport > .youtube-timeline { grid-area: progress; }
+.youtube-main-player .youtube-transport > .youtube-play {
+  grid-area: play;
+  justify-self: center;
+}
+.youtube-main-player .youtube-transport > .youtube-volume-controls {
+  grid-area: volume;
+  grid-template-columns: 32px minmax(0, 1fr) 4ch;
+  gap: clamp(2px, 1cqi, 6px);
+  width: 100%;
 }
 
 .modal.focus-settings-panel {
