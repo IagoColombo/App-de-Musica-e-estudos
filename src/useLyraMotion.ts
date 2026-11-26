@@ -18,7 +18,7 @@ export function usePageEntrance(scope: RefObject<HTMLElement | null>, page: stri
   }, { scope, dependencies: [page, trackId], revertOnUpdate: true });
 }
 
-export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, large: boolean, viewKey = "") {
+export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIndex: number, trackId: string, viewKey = "") {
   const follow = useRef<(() => void) | null>(null);
   useGSAP(() => {
     const container = list.current;
@@ -50,8 +50,8 @@ export function useLyricsAnimation(list: RefObject<HTMLElement | null>, activeIn
       window.clearTimeout(resume);
       inputs.forEach(type => container.removeEventListener(type, suspend));
     };
-  }, { dependencies: [trackId, large, viewKey], revertOnUpdate: true });
-  useGSAP(() => { follow.current?.(); }, { dependencies: [activeIndex, trackId, large, viewKey] });
+  }, { dependencies: [trackId, viewKey], revertOnUpdate: true });
+  useGSAP(() => { follow.current?.(); }, { dependencies: [activeIndex, trackId, viewKey] });
 }
 
 export function useBrandPlayback(mark: RefObject<HTMLSpanElement | null>, playing: boolean) {

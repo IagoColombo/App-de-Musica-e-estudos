@@ -117,13 +117,12 @@
   background-image: linear-gradient(90deg, var(--album-accent) var(--sung), #a7b9bf var(--sung));
 }
 
-.lyrics-actions { display: flex; align-items: center; gap: 8px; margin-inline-start: auto; }
-.lyrics-actions :is(.karaoke-toggle, .font-button) {
+.lyrics-column .karaoke-toggle {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  min-width: 40px;
+  gap: 8px;
   min-height: 40px;
+  margin-inline-start: auto;
   padding: 0 12px;
   border: 1px solid #c1dcda40;
   border-radius: 999px;
@@ -132,12 +131,19 @@
   font: 600 14px/1 var(--font-body);
   cursor: pointer;
 }
-.lyrics-actions button:hover { border-color: var(--album-accent); }
-.lyrics-actions button[aria-pressed="true"] {
-  border-color: var(--album-accent);
-  background: var(--album-accent);
-  color: #102023;
+.karaoke-toggle-indicator {
+  width: 8px;
+  height: 8px;
+  border: 1px solid currentColor;
+  border-radius: 50%;
 }
+.lyrics-column .karaoke-toggle:hover,
+.lyrics-column .karaoke-toggle[aria-pressed="true"] { border-color: var(--album-accent); }
+.lyrics-column .karaoke-toggle[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--album-accent) 16%, #10242b);
+  color: var(--album-accent);
+}
+.karaoke-toggle[aria-pressed="true"] .karaoke-toggle-indicator { background: currentColor; }
 .karaoke-demo > button { background: transparent; border-color: transparent; text-decoration: underline; text-underline-offset: 3px; }
 .lyrics-column[data-visual-mode="cinematic"] :is(.lyric, .spotify-lyric):not(.active) { opacity: .84; }
 .lyrics-column[data-visual-mode="cinematic"] .active em { font-size: .95rem; }
